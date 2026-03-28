@@ -178,11 +178,11 @@ export default function SessionResults() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -12 }}
             >
-              <span className="sr-connected-icon">✅</span>
+              <span className="sr-connected-icon" aria-hidden />
               <div>
                 <strong>Session sent to {connectedDoctor.name}</strong>
                 <p>
-                  {connectedDoctor.flag} {connectedDoctor.country} · {connectedDoctor.org} ·{' '}
+                  {connectedDoctor.country} · {connectedDoctor.org} ·{' '}
                   <span className="sr-connected-langs">{connectedDoctor.languages.join(', ')}</span>
                 </p>
                 <p className="sr-connected-eta">
@@ -374,10 +374,10 @@ export default function SessionResults() {
             onClick={() => setShowDoctorSelector(true)}
           >
             {connectedDoctor
-              ? `Connected: ${connectedDoctor.name.split(' ').slice(-1)[0]} ✓`
+              ? `Connected: ${connectedDoctor.name.split(' ').slice(-1)[0]}`
               : shared
                 ? 'Send to Another Doctor'
-                : 'Send to a Doctor 🌏'}
+                : 'Send to a Doctor'}
           </button>
 
           <button className="btn btn-outline" onClick={() => handleSpeak(voiceLang)}>

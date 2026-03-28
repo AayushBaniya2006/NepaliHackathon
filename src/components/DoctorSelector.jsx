@@ -2,6 +2,9 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './DoctorSelector.css';
 
+const DEFAULT_DOC_PHOTO =
+  'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=200&q=80';
+
 // ── Mock volunteer doctor roster ──────────────────────────────────────────────
 const DOCTORS = [
   {
@@ -10,7 +13,6 @@ const DOCTORS = [
     title: 'Psychiatrist',
     org: 'WHO Volunteer Network',
     country: 'India',
-    flag: '🇮🇳',
     languages: ['Nepali', 'Hindi', 'English'],
     rating: 4.9,
     reviews: 312,
@@ -19,7 +21,7 @@ const DOCTORS = [
     free: true,
     freeLabel: 'Free for uninsured',
     specialty: 'Anxiety · Depression · Cultural trauma',
-    avatar: '👩‍⚕️',
+    photo: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=400&q=80',
     bio: 'Trained in Mumbai, Priya has spent 8 years working with South Asian diaspora communities. Fluent in Nepali and Hindi — no language barrier.',
   },
   {
@@ -28,7 +30,6 @@ const DOCTORS = [
     title: 'Clinical Psychologist',
     org: 'Volunteer — Maiti Nepal',
     country: 'Nepal',
-    flag: '🇳🇵',
     languages: ['Nepali', 'Hindi', 'English'],
     rating: 5.0,
     reviews: 87,
@@ -37,7 +38,7 @@ const DOCTORS = [
     free: true,
     freeLabel: '100% Free',
     specialty: 'Trauma · PTSD · Adolescent mental health',
-    avatar: '👨‍⚕️',
+    photo: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=400&q=80',
     bio: 'Rajan understands the Nepali social fabric deeply — family pressure, conservative norms, stigma. Your session stays private.',
   },
   {
@@ -46,7 +47,6 @@ const DOCTORS = [
     title: 'Clinical Psychologist',
     org: 'Pro Bono Network USA',
     country: 'United States',
-    flag: '🇺🇸',
     languages: ['English'],
     rating: 4.8,
     reviews: 540,
@@ -55,7 +55,7 @@ const DOCTORS = [
     free: true,
     freeLabel: 'Pro bono slots',
     specialty: 'CBT · Grief · Workplace stress',
-    avatar: '👨‍⚕️',
+    photo: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80',
     bio: 'James reserves 10 hours/week for patients who cannot afford care. Board-certified with 15 years of telehealth experience.',
   },
   {
@@ -64,7 +64,6 @@ const DOCTORS = [
     title: 'Trauma Therapist',
     org: 'Médecins Sans Frontières',
     country: 'Jordan',
-    flag: '🇯🇴',
     languages: ['Arabic', 'English', 'French'],
     rating: 4.9,
     reviews: 228,
@@ -73,7 +72,7 @@ const DOCTORS = [
     free: true,
     freeLabel: 'MSF — Free',
     specialty: 'War trauma · Displacement · Anxiety',
-    avatar: '👩‍⚕️',
+    photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
     bio: 'Field-trained with MSF across 6 countries. Specialises in helping people process trauma when words alone aren\'t enough.',
   },
   {
@@ -82,7 +81,6 @@ const DOCTORS = [
     title: 'Art Therapist',
     org: 'Global Art Therapy Collective',
     country: 'Brazil',
-    flag: '🇧🇷',
     languages: ['Portuguese', 'Spanish', 'English'],
     rating: 4.7,
     reviews: 195,
@@ -91,7 +89,7 @@ const DOCTORS = [
     free: true,
     freeLabel: 'Sliding scale / Free',
     specialty: 'Expressive arts · Nonverbal therapy · Autism',
-    avatar: '👩‍⚕️',
+    photo: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&q=80',
     bio: 'Maria specialises in exactly what VoiceCanvas does — reading emotional content from drawings. She has worked with nonverbal patients for 12 years.',
   },
   {
@@ -100,7 +98,6 @@ const DOCTORS = [
     title: 'Child Psychiatrist',
     org: 'Doctors Without Borders',
     country: 'Senegal / France',
-    flag: '🇸🇳',
     languages: ['French', 'English', 'Wolof'],
     rating: 4.8,
     reviews: 143,
@@ -109,7 +106,7 @@ const DOCTORS = [
     free: true,
     freeLabel: 'Doctors Without Borders',
     specialty: 'Child & adolescent · Cultural identity · Stigma',
-    avatar: '👩‍⚕️',
+    photo: 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=400&q=80',
     bio: 'Amara bridges the gap between Western clinical frameworks and African/Asian cultural contexts where mental health stigma is high.',
   },
   {
@@ -118,7 +115,6 @@ const DOCTORS = [
     title: 'Psychotherapist',
     org: 'Asia Pacific Volunteer Alliance',
     country: 'Singapore',
-    flag: '🇸🇬',
     languages: ['Mandarin', 'English', 'Cantonese'],
     rating: 4.9,
     reviews: 267,
@@ -127,7 +123,7 @@ const DOCTORS = [
     free: true,
     freeLabel: 'Free first session',
     specialty: 'OCD · Perfectionism · Family conflict',
-    avatar: '👨‍⚕️',
+    photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&q=80',
     bio: 'Chen has worked extensively with patients from collectivist cultures where individual mental health needs are often suppressed for family honour.',
   },
   {
@@ -136,7 +132,6 @@ const DOCTORS = [
     title: 'Art & Expressive Therapist',
     org: 'WHO Mental Health Gap',
     country: 'Japan',
-    flag: '🇯🇵',
     languages: ['Japanese', 'English'],
     rating: 4.6,
     reviews: 118,
@@ -145,7 +140,7 @@ const DOCTORS = [
     free: true,
     freeLabel: 'Volunteer — WHO',
     specialty: 'Drawing therapy · Nonverbal communication · ADHD',
-    avatar: '👩‍⚕️',
+    photo: 'https://images.unsplash.com/photo-1651008376811-b90baee60c1f?auto=format&fit=crop&w=400&q=80',
     bio: 'Yuki pioneered drawing-based therapy in Japan. Your VoiceCanvas session is exactly the kind of data she works with every day.',
   },
 ];
@@ -196,7 +191,6 @@ function mapNpiToDoctor(r) {
     title: tax.desc || 'Healthcare Provider',
     org: 'NPI Registered US Provider',
     country: `${addr.city || ''}, ${addr.state || 'US'}`.replace(/^, /, ''),
-    flag: '🇺🇸',
     languages: ['English'],
     rating: null,
     reviews: null,
@@ -205,7 +199,7 @@ function mapNpiToDoctor(r) {
     free: false,
     freeLabel: 'Contact for fees',
     specialty: tax.desc || 'General Practice',
-    avatar: b.gender === 'F' ? '👩‍⚕️' : '👨‍⚕️',
+    photo: DEFAULT_DOC_PHOTO,
     bio: `NPI: ${r.number}. Licensed in ${addr.state || 'US'}. ${tax.desc ? `Specialty: ${tax.desc}.` : ''} Contact this provider directly to confirm availability and fees.`,
     npiSource: true,
   };
@@ -214,9 +208,8 @@ function mapNpiToDoctor(r) {
 function Stars({ rating }) {
   return (
     <span className="ds-stars">
-      {'★'.repeat(Math.floor(rating))}
-      {rating % 1 >= 0.5 ? '½' : ''}
       <span className="ds-rating-num">{rating.toFixed(1)}</span>
+      <span className="ds-rating-outof"> / 5</span>
     </span>
   );
 }
@@ -311,7 +304,6 @@ function NpiSearch({ onConnect, expanded, setExpanded }) {
 
         {!npiLoading && !npiError && npiResults === null && (
           <div className="ds-npi-placeholder">
-            <span className="ds-npi-placeholder-icon">🏥</span>
             <p>Search for a doctor above</p>
             <span className="ds-npi-placeholder-sub">
               Results are pulled live from the US National Provider Identifier registry
@@ -349,10 +341,12 @@ function NpiDoctorCard({ doc, onConnect, expanded, setExpanded }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      <div className="ds-card-main">
+        <div className="ds-card-main">
         {/* Avatar */}
         <div className="ds-avatar-wrap">
-          <div className="ds-avatar">{doc.avatar}</div>
+          <div className="ds-avatar ds-avatar-photo">
+            <img src={doc.photo || DEFAULT_DOC_PHOTO} alt="" />
+          </div>
           <div className="ds-status-dot" style={{ background: 'var(--info)' }} />
         </div>
 
@@ -361,16 +355,15 @@ function NpiDoctorCard({ doc, onConnect, expanded, setExpanded }) {
           <div className="ds-card-top">
             <div>
               <span className="ds-doc-name">{doc.name}</span>
-              <span className="ds-flag">{doc.flag}</span>
             </div>
-            <span className="ds-npi-verified-badge">NPI Verified ✓</span>
+            <span className="ds-npi-verified-badge">NPI Verified</span>
           </div>
 
           <p className="ds-doc-title">{doc.title} · {doc.country}</p>
           <p className="ds-doc-specialty">{doc.specialty}</p>
 
           <div className="ds-card-meta">
-            <span className="ds-npi-rating-note">★★★★★ Rating unknown</span>
+            <span className="ds-npi-rating-note">Rating unknown</span>
           </div>
 
           <div className="ds-card-badges">
@@ -395,7 +388,7 @@ function NpiDoctorCard({ doc, onConnect, expanded, setExpanded }) {
         className="ds-expand-btn"
         onClick={() => setExpanded(expanded === doc.id ? null : doc.id)}
       >
-        {expanded === doc.id ? 'Hide details ▲' : 'About this provider ▼'}
+        {expanded === doc.id ? 'Hide details' : 'About this provider'}
       </button>
       <AnimatePresence>
         {expanded === doc.id && (
@@ -470,7 +463,6 @@ export default function DoctorSelector({ onClose, onConnect, stressScore }) {
 
         {/* Breaking-barriers banner */}
         <div className="ds-mission-bar">
-          <span className="ds-mission-icon">🌏</span>
           <p>
             A Nepali patient can speak with an Indian or American doctor in their own language — breaking
             the barriers of conservative societies, geography, and cost.
@@ -483,13 +475,13 @@ export default function DoctorSelector({ onClose, onConnect, stressScore }) {
             className={`ds-tab ${tab === 'volunteers' ? 'ds-tab-active' : ''}`}
             onClick={() => setTab('volunteers')}
           >
-            Global Volunteers 🌏
+            Global Volunteers
           </button>
           <button
             className={`ds-tab ${tab === 'npi' ? 'ds-tab-active' : ''}`}
             onClick={() => setTab('npi')}
           >
-            Search US Doctors 🏥
+            Search US Doctors
           </button>
         </div>
 
@@ -539,7 +531,9 @@ export default function DoctorSelector({ onClose, onConnect, stressScore }) {
                   <div className="ds-card-main">
                     {/* Avatar + status */}
                     <div className="ds-avatar-wrap">
-                      <div className="ds-avatar">{doc.avatar}</div>
+                      <div className="ds-avatar ds-avatar-photo">
+                        <img src={doc.photo || DEFAULT_DOC_PHOTO} alt="" />
+                      </div>
                       <div className="ds-status-dot" style={{ background: STATUS_COLOR[doc.status] }} />
                     </div>
 
@@ -548,7 +542,6 @@ export default function DoctorSelector({ onClose, onConnect, stressScore }) {
                       <div className="ds-card-top">
                         <div>
                           <span className="ds-doc-name">{doc.name}</span>
-                          <span className="ds-flag">{doc.flag}</span>
                         </div>
                         <span
                           className="ds-status-badge"
@@ -590,7 +583,7 @@ export default function DoctorSelector({ onClose, onConnect, stressScore }) {
                     className="ds-expand-btn"
                     onClick={() => setExpanded(expanded === doc.id ? null : doc.id)}
                   >
-                    {expanded === doc.id ? 'Hide details ▲' : 'About this doctor ▼'}
+                    {expanded === doc.id ? 'Hide details' : 'About this doctor'}
                   </button>
                   <AnimatePresence>
                     {expanded === doc.id && (
@@ -623,7 +616,7 @@ export default function DoctorSelector({ onClose, onConnect, stressScore }) {
 
         {/* Footer note */}
         <div className="ds-footer-note">
-          <span>🔒 End-to-end encrypted · Session data shared only with the doctor you choose · You can withdraw consent at any time</span>
+          <span>End-to-end encrypted · Session data shared only with the doctor you choose · You can withdraw consent at any time</span>
         </div>
       </motion.div>
     </motion.div>
