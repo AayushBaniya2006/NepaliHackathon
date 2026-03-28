@@ -374,7 +374,7 @@ export default function SessionResults() {
             onClick={() => setShowDoctorSelector(true)}
           >
             {connectedDoctor
-              ? `Connected: ${connectedDoctor.name.split(' ').slice(-1)[0]}`
+              ? `Connected: ${connectedDoctor.name.replace(/,?\s*(MD|DO|PhD|PsyD|RN|NP|LCSW|LPC|LMFT)\.?$/gi, '').trim().split(' ').slice(-1)[0]}`
               : shared
                 ? 'Send to Another Doctor'
                 : 'Send to a Doctor'}

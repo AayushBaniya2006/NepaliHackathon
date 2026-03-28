@@ -1,10 +1,18 @@
 import { useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 
+function canvasPixelToStampNorm(canvasX, canvasY, width, height) {
+  return {
+    x: Math.min(1, Math.max(0, 1 - canvasX / width)),
+    y: Math.min(1, Math.max(0, canvasY / height)),
+  };
+}
+
 const DrawingCanvas = forwardRef(({ width, height, currentColor, brushSize = 4, onStrokePoint }, ref) => {
   const canvasRef = useRef(null);
   const isDrawingRef = useRef(false);
   const prevPointRef = useRef(null);
   const prevPrevPointRef = useRef(null);
+  const lastStampNormRef = useRef({ x: 0.5, y: 0.5 });
 
   const getColor = useCallback(() => {
     return currentColor || 'rgba(78, 205, 196, 0.8)';
@@ -86,6 +94,7 @@ const DrawingCanvas = forwardRef(({ width, height, currentColor, brushSize = 4, 
 
       const canvasX = (1 - x) * width;
       const canvasY = y * height;
+      lastStampNormRef.current = canvasPixelToStampNorm(canvasX, canvasY, width, height);
       const current = { x: canvasX, y: canvasY };
 
       if (prevPointRef.current) {
@@ -103,6 +112,7 @@ const DrawingCanvas = forwardRef(({ width, height, currentColor, brushSize = 4, 
       if (!ctx) return;
       const canvasX = (1 - x) * width;
       const canvasY = y * height;
+      lastStampNormRef.current = canvasPixelToStampNorm(canvasX, canvasY, width, height);
       ctx.save();
       ctx.globalCompositeOperation = 'destination-out';
       ctx.beginPath();
@@ -119,9 +129,11 @@ const DrawingCanvas = forwardRef(({ width, height, currentColor, brushSize = 4, 
       if (!ctx || !stampDrawFn) return;
       const canvasX = (1 - x) * width;
       const canvasY = y * height;
+      lastStampNormRef.current = canvasPixelToStampNorm(canvasX, canvasY, width, height);
       const size = Math.min(width, height) * 0.08;
       stampDrawFn(ctx, canvasX, canvasY, size, getColor());
     },
+    getLastStampNorm: () => ({ ...lastStampNormRef.current }),
   }));
 
   // Mouse fallback
@@ -131,24 +143,38 @@ const DrawingCanvas = forwardRef(({ width, height, currentColor, brushSize = 4, 
     let mousePrev = null;
     let mousePrev2 = null;
 
-    const handleMouseDown = (e) => {
-      isDrawingRef.current = true;
+    const clientToCanvas = (e) => {
       const rect = canvas.getBoundingClientRect();
       const scaleX = width / rect.width;
       const scaleY = height / rect.height;
-      mousePrev = { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+      const cx = (e.clientX - rect.left) * scaleX;
+      const cy = (e.clientY - rect.top) * scaleY;
+      return { cx, cy };
+    };
+
+    const trackPointerForStamp = (e) => {
+      const { cx, cy } = clientToCanvas(e);
+      if (cx >= 0 && cx <= width && cy >= 0 && cy <= height) {
+        lastStampNormRef.current = canvasPixelToStampNorm(cx, cy, width, height);
+      }
+    };
+
+    const handleMouseDown = (e) => {
+      trackPointerForStamp(e);
+      isDrawingRef.current = true;
+      const { cx, cy } = clientToCanvas(e);
+      mousePrev = { x: cx, y: cy };
       mousePrev2 = null;
       drawDot(canvas.getContext('2d'), mousePrev.x, mousePrev.y);
       onStrokePoint?.({ x: mousePrev.x, y: mousePrev.y, t: Date.now() });
     };
 
     const handleMouseMove = (e) => {
+      trackPointerForStamp(e);
       if (!isDrawingRef.current) return;
       const ctx = canvas.getContext('2d');
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = width / rect.width;
-      const scaleY = height / rect.height;
-      const current = { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+      const { cx, cy } = clientToCanvas(e);
+      const current = { x: cx, y: cy };
 
       if (mousePrev) {
         drawSmooth(ctx, mousePrev2, mousePrev, current);
@@ -175,7 +201,7 @@ const DrawingCanvas = forwardRef(({ width, height, currentColor, brushSize = 4, 
       canvas.removeEventListener('mouseup', handleMouseUp);
       canvas.removeEventListener('mouseleave', handleMouseUp);
     };
-  }, [drawSmooth, drawDot, width, height]);
+  }, [drawSmooth, drawDot, width, height, onStrokePoint]);
 
   return (
     <canvas

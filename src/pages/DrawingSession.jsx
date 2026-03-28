@@ -10,7 +10,7 @@ import { useClaude } from '../hooks/useClaude';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { useStorage } from '../hooks/useStorage';
 import { getPromptById, DRAWING_PROMPTS } from '../utils/drawingPrompts';
-import { STAMPS } from '../utils/stamps';
+import { STAMPS, getStampByGesture } from '../utils/stamps';
 import GestureConfidenceBar from '../components/GestureConfidenceBar';
 import LiveSparkline from '../components/LiveSparkline';
 import CanvasHeatmap from '../components/CanvasHeatmap';
@@ -74,6 +74,7 @@ export default function DrawingSession({ promptOverride }) {
   const [analyzeStage, setAnalyzeStage] = useState('');
 
   const stampCooldownRef = useRef(false);
+  const [stampFeedbackName, setStampFeedbackName] = useState('');
 
   const { recognizeSign, interpretSignMessage, loading: claudeLoading } = useClaude();
   const { analyzeDrawing, loading: analysisLoading } = useAnalysis();
@@ -113,12 +114,27 @@ export default function DrawingSession({ promptOverride }) {
     if (confidence !== undefined) setGestureConfidence(confidence);
     if (mode !== 'draw') return;
 
+    const stampGestures = ['fingers_2', 'fingers_3', 'fingers_4'];
+    const drawLikeGestures = ['index_up', 'pinch', ...stampGestures];
+
     if (detectedGesture === 'index_up' && fingertip) {
       canvasRef.current?.drawAt(fingertip.x, fingertip.y);
     } else if (detectedGesture === 'pinch' && fingertip) {
       canvasRef.current?.eraseAt(fingertip.x, fingertip.y);
       canvasRef.current?.resetPrevPoint();
-    } else if (!['index_up', 'pinch'].includes(detectedGesture)) {
+    } else if (stampGestures.includes(detectedGesture) && fingertip) {
+      const stamp = getStampByGesture(detectedGesture);
+      if (stamp && !stampCooldownRef.current) {
+        stampCooldownRef.current = true;
+        canvasRef.current?.placeStamp(fingertip.x, fingertip.y, stamp.draw);
+        canvasRef.current?.resetPrevPoint();
+        setStampFeedbackName(stamp.name);
+        window.setTimeout(() => {
+          stampCooldownRef.current = false;
+        }, 350);
+        window.setTimeout(() => setStampFeedbackName(''), 1200);
+      }
+    } else if (!drawLikeGestures.includes(detectedGesture)) {
       canvasRef.current?.resetPrevPoint();
     }
 
@@ -265,8 +281,6 @@ export default function DrawingSession({ promptOverride }) {
   const timerMinutes = Math.floor(timeLeft / 60);
   const timerSeconds = timeLeft % 60;
   const timerPct = (timeLeft / TIMER_SECONDS) * 100;
-
-  const activeStampName = '';
 
   return (
     <div className="drawing-session">
@@ -456,7 +470,7 @@ export default function DrawingSession({ promptOverride }) {
             {/* CC bar */}
             {mode === 'draw' && gesture !== 'none' && (
               <div className="ds-cc-bar">
-                <GestureIndicator gesture={gesture} isProcessing={isProcessing} inline stampName={activeStampName} />
+                <GestureIndicator gesture={gesture} isProcessing={isProcessing} inline stampName={stampFeedbackName} />
                 <GestureConfidenceBar confidence={gestureConfidence} />
               </div>
             )}
@@ -486,7 +500,7 @@ export default function DrawingSession({ promptOverride }) {
             <div className="ds-side-card ds-stamps-card">
               <div className="ds-sc-header">
                 <span>Stamps</span>
-                <span className="ds-sc-sub">Click to place</span>
+                <span className="ds-sc-sub">At last canvas point</span>
               </div>
               <div className="ds-stamp-grid">
                 {STAMPS.map((stamp) => {
@@ -494,9 +508,10 @@ export default function DrawingSession({ promptOverride }) {
                     <button key={stamp.id}
                       className="ds-stamp-btn"
                       onClick={() => {
-                        const centerX = 0.5;
-                        const centerY = 0.5;
-                        canvasRef.current?.placeStamp(centerX, centerY, stamp.draw);
+                        const norm = canvasRef.current?.getLastStampNorm?.();
+                        const x = norm ? norm.x : 0.5;
+                        const y = norm ? norm.y : 0.5;
+                        canvasRef.current?.placeStamp(x, y, stamp.draw);
                       }}>
                       <StampPreview stamp={stamp} />
                       <span className="ds-stamp-name">{stamp.name}</span>
