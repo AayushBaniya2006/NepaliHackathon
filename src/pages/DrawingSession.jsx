@@ -53,6 +53,7 @@ export default function DrawingSession({ promptOverride }) {
   const [showBrain, setShowBrain] = useState(true);
 
   const [mode, setMode] = useState('draw');
+  const [sessionMode, setSessionMode] = useState('solo'); // 'solo' | 'live'
   const [recognizedWords, setRecognizedWords] = useState([]);
   const [currentSign, setCurrentSign] = useState(null);
   const [isRecognizing, setIsRecognizing] = useState(false);
@@ -180,7 +181,7 @@ export default function DrawingSession({ promptOverride }) {
         promptId, stressScore: result.stress_score, indicators: result.indicators,
         pattern: result.pattern, thresholdMet: result.threshold_met,
       });
-      navigate('/session-results', { state: { result, canvasImage: dataUrl, promptId } });
+      navigate('/session-results', { state: { result, canvasImage: dataUrl, promptId, liveMode: sessionMode === 'live' } });
     }
     setIsProcessing(false);
   };
@@ -296,6 +297,12 @@ export default function DrawingSession({ promptOverride }) {
         </div>
 
         <div className="ds-header-center">
+          <div className="ds-mode-toggle" style={{ marginRight: '8px' }}>
+            <button className={`ds-mode-btn ${sessionMode === 'solo' ? 'ds-mode-active' : ''}`}
+              onClick={() => setSessionMode('solo')} title="Solo session — private">Solo</button>
+            <button className={`ds-mode-btn ${sessionMode === 'live' ? 'ds-mode-active' : ''}`}
+              onClick={() => setSessionMode('live')} title="Live session — doctor receives audio interpretation">Live</button>
+          </div>
           <div className="ds-mode-toggle">
             <button className={`ds-mode-btn ${mode === 'draw' ? 'ds-mode-active' : ''}`}
               onClick={() => switchMode('draw')}>Draw</button>

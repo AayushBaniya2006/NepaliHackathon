@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getPromptById } from '../utils/drawingPrompts';
 import { exportClinicalNotePDF } from '../utils/pdfExport';
 import { useStorage } from '../hooks/useStorage';
+import { useElevenLabs } from '../hooks/useElevenLabs';
 import { isAzureUploadConfigured, uploadSessionReplayToAzure } from '../utils/azureBlob';
 import DoctorSelector from '../components/DoctorSelector';
 import './SessionResults.css';
@@ -13,9 +14,10 @@ const VOICECANVAS_PATIENT_ID = import.meta.env.VITE_VOICECANVAS_PATIENT_ID?.trim
 export default function SessionResults() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { result, canvasImage, promptId } = location.state || {};
+  const { result, canvasImage, promptId, liveMode } = location.state || {};
   const prompt = getPromptById(promptId);
   const { profile, sessions } = useStorage();
+  const { speak: elevenSpeak } = useElevenLabs();
 
   const [shared, setShared] = useState(false);
   const [voiceLang, setVoiceLang] = useState('patient'); // 'patient' | 'en'
@@ -33,6 +35,17 @@ export default function SessionResults() {
     const latest = sessions[sessions.length - 1];
     if (latest?.sharedWithDoctor) setShared(true);
   }, [result, sessions]);
+
+  // Auto-play personal statement via ElevenLabs on load
+  useEffect(() => {
+    if (!result?.personal_statement) return;
+    const text = liveMode
+      ? (result.personal_statement_en || result.personal_statement)
+      : result.personal_statement;
+    const timer = setTimeout(() => elevenSpeak(text), 1200);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const triggerAzureShare = useCallback(() => {
     try {
@@ -143,6 +156,18 @@ export default function SessionResults() {
             <span>🎨</span> MindCanvas
           </div>
         </motion.div>
+
+        {/* Live mode indicator */}
+        {liveMode && (
+          <motion.div
+            style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '12px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', fontSize: '0.875rem', color: '#1D4ED8' }}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <span>🎙️</span>
+            <span><strong>Live Session</strong> — English interpretation auto-played for your clinician.</span>
+          </motion.div>
+        )}
 
         {/* Connected doctor confirmation banner */}
         <AnimatePresence>
