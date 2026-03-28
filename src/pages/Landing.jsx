@@ -4,6 +4,19 @@ import { motion } from 'framer-motion';
 import { useStorage } from '../hooks/useStorage';
 import './Landing.css';
 
+const EMPLOYER_STATS = [
+  { value: '$500B', label: 'Lost annually to untreated mental health in the US', icon: '💸' },
+  { value: '25M', label: 'Limited English workers with no mental health access', icon: '🌍' },
+  { value: '$2', label: 'Per employee per month — less than a coffee', icon: '☕' },
+];
+
+const EMPLOYER_STEPS = [
+  { icon: '🏢', title: 'Connect via Gusto or Rippling', desc: 'One click inside your existing HR benefits dashboard.' },
+  { icon: '🌐', title: 'Language auto-detected', desc: "Employee's language and insurance is pre-filled — zero friction." },
+  { icon: '🎨', title: 'Employee draws, AI interprets', desc: 'No words needed. 5-minute sessions generate clinical records.' },
+  { icon: '⚖️', title: 'Claims handled automatically', desc: 'Reclaimant fights insurance denials. You get a healthier team.' },
+];
+
 const STATS = [
   { value: '10M+', label: 'Nonverbal Americans underdiagnosed', icon: '🧠' },
   { value: '2×', label: 'Higher depression in disabled adults', icon: '📊' },
@@ -22,6 +35,12 @@ export default function Landing() {
   const navigate = useNavigate();
   const { isOnboarded, profile } = useStorage();
   const [hoveredRole, setHoveredRole] = useState(null);
+  const [partnerToast, setPartnerToast] = useState(false);
+
+  function handlePartner() {
+    setPartnerToast(true);
+    setTimeout(() => setPartnerToast(false), 3500);
+  }
 
   const handleRoleSelect = (role) => {
     if (isOnboarded() && profile) {
@@ -208,6 +227,78 @@ export default function Landing() {
                 <span className="cta-stat-label">Auto-appeal win rate</span>
               </div>
             </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Employer / PEO section */}
+      <section className="employer-section" id="employers">
+        <div className="container">
+          <motion.div
+            className="employer-inner"
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <div className="employer-header">
+              <span className="employer-badge">For Employers</span>
+              <h2>Offer mental health care your employees can actually use</h2>
+              <p>
+                1 in 4 of your employees has never accessed mental health care — not because they don't need it,
+                but because they can't articulate their symptoms. VoiceCanvas removes that barrier.
+              </p>
+            </div>
+
+            <div className="employer-stats">
+              {EMPLOYER_STATS.map((s, i) => (
+                <motion.div
+                  key={i}
+                  className="employer-stat"
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                >
+                  <span className="employer-stat-icon">{s.icon}</span>
+                  <span className="employer-stat-value">{s.value}</span>
+                  <span className="employer-stat-label">{s.label}</span>
+                </motion.div>
+              ))}
+            </div>
+
+            <div className="employer-steps">
+              {EMPLOYER_STEPS.map((step, i) => (
+                <motion.div
+                  key={i}
+                  className="employer-step"
+                  initial={{ opacity: 0, x: -12 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.08 }}
+                >
+                  <span className="employer-step-icon">{step.icon}</span>
+                  <div>
+                    <strong>{step.title}</strong>
+                    <p>{step.desc}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            <button className="employer-cta-btn" onClick={handlePartner}>
+              Partner with us →
+            </button>
+
+            {partnerToast && (
+              <motion.div
+                className="employer-toast"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+              >
+                🎉 We'll be in touch! Thank you for your interest.
+              </motion.div>
+            )}
           </motion.div>
         </div>
       </section>

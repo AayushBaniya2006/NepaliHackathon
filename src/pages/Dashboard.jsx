@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useStorage } from '../hooks/useStorage';
 import { DRAWING_PROMPTS, WEEKLY_GOAL } from '../utils/drawingPrompts';
 import CareBoard from '../components/CareBoard';
+import StressChart from '../components/StressChart';
 import './Dashboard.css';
 
 const MOOD_EMOJIS = [
@@ -182,6 +183,13 @@ export default function Dashboard() {
             </div>
           </motion.section>
 
+          {/* Stress Trajectory Chart */}
+          {sessions.length > 0 && (
+            <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
+              <StressChart sessions={sessions} />
+            </motion.section>
+          )}
+
           {/* Drawing Prompts */}
           <motion.section className="dash-prompts" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
             <div className="section-head">
@@ -258,6 +266,19 @@ export default function Dashboard() {
               <p><strong>Missed a drawing?</strong> A 2-minute mood check builds your clinical evidence. <button className="link-btn" onClick={() => navigate('/draw', { state: { promptId: 'energy' } })}>Quick draw now →</button></p>
             </motion.div>
           )}
+
+          {/* Footer links */}
+          <motion.div className="dash-footer-links" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }}>
+            <button className="dash-footer-btn" onClick={() => navigate('/find-doctor')}>
+              🌍 Find a Doctor
+            </button>
+            <button className="dash-footer-btn" onClick={() => navigate('/resources')}>
+              💊 Free Care Resources
+            </button>
+            <a className="dash-footer-btn" href="tel:988">
+              📞 Crisis Line: 988
+            </a>
+          </motion.div>
         </div>
       </main>
     </div>

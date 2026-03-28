@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import DrawingSession from './pages/DrawingSession';
 import SessionResults from './pages/SessionResults';
 import CareNote from './pages/CareNote';
+import FindDoctor from './pages/FindDoctor';
 import './index.css';
 
 function AnimatedRoutes() {
@@ -28,6 +29,8 @@ function AnimatedRoutes() {
           <Route path="/session-results" element={<SessionResults />} />
           {/* Public shareable Care Board sender — no auth required */}
           <Route path="/care/:patientId" element={<CareNote />} />
+          {/* Doctor Finder */}
+          <Route path="/find-doctor" element={<FindDoctor />} />
           {/* Clinician / insurance / resources live in doctor-saas only — keep old URLs from bookmarking */}
           <Route path="/clinician" element={<Navigate to="/dashboard" replace />} />
           <Route path="/insurance" element={<Navigate to="/dashboard" replace />} />
