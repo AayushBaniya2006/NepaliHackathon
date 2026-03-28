@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStorage } from '../hooks/useStorage';
+import { useMediaPipe } from '../hooks/useMediaPipe';
 import './Onboarding.css';
 
 const CONSENT_ITEMS = [
@@ -25,35 +26,145 @@ const CONSENT_ITEMS = [
   },
 ];
 
+const CALIBRATION_GESTURES = [
+  { id: 'index_up', label: 'Hold up 1 finger', icon: '☝️', hint: 'Raise your index finger' },
+  { id: 'fingers_2', label: 'Hold up 2 fingers', icon: '✌️', hint: 'Show a peace sign' },
+  { id: 'open_hand', label: 'Show open hand', icon: '🖐️', hint: 'Spread all 5 fingers' },
+  { id: 'fist', label: 'Make a fist', icon: '✊', hint: 'Close your hand tightly' },
+];
+
 export default function Onboarding() {
   const navigate = useNavigate();
   const location = useLocation();
   const role = location.state?.role || 'patient';
   const { setProfile, setOnboarded } = useStorage();
 
+  const TOTAL_STEPS = 4;
   const [step, setStep] = useState(1);
   const [consent, setConsent] = useState({});
   const [name, setName] = useState('');
 
+  // Camera state (step 2)
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
+
+  // Calibration state (step 3)
+  const [calibrationIndex, setCalibrationIndex] = useState(0);
+  const [calibrated, setCalibrated] = useState({});
+  const [calibrationTimeout, setCalibrationTimeout] = useState(false);
+  const calibrationTimerRef = useRef(null);
+  const [currentGesture, setCurrentGesture] = useState('none');
+
   const isCaregiver = role === 'caregiver';
 
-  const canProceed = () => {
-    if (step === 1) {
-      return consent.disclaimer === true;
+  // Camera init for steps 2-3
+  useEffect(() => {
+    if (step < 2 || step > 3) return;
+    if (streamRef.current) return; // already have a stream
+    async function initCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+        });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.onloadeddata = () => setCameraReady(true);
+        }
+      } catch {
+        setCameraError('Camera access denied. You can still use mouse drawing.');
+      }
     }
+    initCamera();
+  }, [step]);
+
+  // Stop camera when leaving step 3
+  useEffect(() => {
+    if (step > 3 || step < 2) {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+        setCameraReady(false);
+      }
+    }
+  }, [step]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+      }
+    };
+  }, []);
+
+  // Gesture detection callback for calibration
+  const handleCalibrationGesture = useCallback((detectedGesture) => {
+    setCurrentGesture(detectedGesture);
+    if (calibrationIndex >= CALIBRATION_GESTURES.length) return;
+    const expected = CALIBRATION_GESTURES[calibrationIndex]?.id;
+    if (detectedGesture === expected) {
+      setCalibrated(prev => ({ ...prev, [expected]: true }));
+      setCalibrationTimeout(false);
+      if (calibrationTimerRef.current) {
+        clearTimeout(calibrationTimerRef.current);
+        calibrationTimerRef.current = null;
+      }
+      // Move to next gesture after a brief pause
+      setTimeout(() => {
+        setCalibrationIndex(prev => prev + 1);
+      }, 600);
+    }
+  }, [calibrationIndex]);
+
+  const { isLoaded: mpLoaded, startTracking, stopTracking } = useMediaPipe(videoRef, handleCalibrationGesture);
+
+  // Start/stop tracking for calibration step
+  useEffect(() => {
+    if (step === 3 && cameraReady && mpLoaded) {
+      startTracking();
+    } else {
+      stopTracking();
+    }
+  }, [step, cameraReady, mpLoaded, startTracking, stopTracking]);
+
+  // 5-second timeout per gesture
+  useEffect(() => {
+    if (step !== 3) return;
+    if (calibrationIndex >= CALIBRATION_GESTURES.length) return;
+    const expected = CALIBRATION_GESTURES[calibrationIndex]?.id;
+    if (calibrated[expected]) return;
+
+    setCalibrationTimeout(false);
+    calibrationTimerRef.current = setTimeout(() => {
+      setCalibrationTimeout(true);
+    }, 5000);
+    return () => {
+      if (calibrationTimerRef.current) clearTimeout(calibrationTimerRef.current);
+    };
+  }, [step, calibrationIndex, calibrated]);
+
+  const canProceed = () => {
+    if (step === 1) return consent.disclaimer === true;
+    if (step === 2) return cameraReady || cameraError;
+    if (step === 3) return calibrationIndex >= CALIBRATION_GESTURES.length || cameraError;
     return true;
   };
 
   const handleNext = () => {
-    if (step === 1 && canProceed()) {
-      setStep(2);
-    } else if (step === 2) {
+    if (!canProceed()) return;
+    if (step < TOTAL_STEPS) {
+      setStep(step + 1);
+    } else {
       setProfile({
         role,
         name: name || (isCaregiver ? 'Caregiver' : 'Patient'),
         isNonverbal: consent.nonverbal || false,
         consentData: consent.data || false,
         startDate: new Date().toISOString(),
+        gesturesCalibrated: Object.keys(calibrated).length > 0,
       });
       setOnboarded(true);
       navigate('/dashboard');
@@ -75,12 +186,13 @@ export default function Onboarding() {
         {/* Progress */}
         <motion.div className="onboarding-progress" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <div className="progress-track">
-            <div className="progress-fill" style={{ width: `${(step / 2) * 100}%` }} />
+            <div className="progress-fill" style={{ width: `${(step / TOTAL_STEPS) * 100}%` }} />
           </div>
-          <span className="progress-label">Step {step} of 2</span>
+          <span className="progress-label">Step {step} of {TOTAL_STEPS}</span>
         </motion.div>
 
         <AnimatePresence mode="wait">
+          {/* Step 1: Consent */}
           {step === 1 && (
             <motion.div
               key="consent"
@@ -125,7 +237,99 @@ export default function Onboarding() {
             </motion.div>
           )}
 
+          {/* Step 2: Camera Permission */}
           {step === 2 && (
+            <motion.div
+              key="camera"
+              className="onboarding-step"
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -30 }}
+            >
+              <div className="step-header">
+                <span className="step-icon-large">📷</span>
+                <h1>Camera Access</h1>
+                <p>We use your camera so you can draw with hand gestures. Nothing is recorded without your knowledge.</p>
+              </div>
+
+              <div className="camera-preview-container">
+                {cameraError ? (
+                  <div className="camera-error-box">
+                    <p>{cameraError}</p>
+                    <p className="camera-error-hint">You can still draw with your mouse in the drawing session.</p>
+                  </div>
+                ) : cameraReady ? (
+                  <div className="camera-preview-box">
+                    <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', maxWidth: 480, borderRadius: 12, transform: 'scaleX(-1)' }} />
+                    <p className="camera-success">Camera connected successfully!</p>
+                  </div>
+                ) : (
+                  <div className="camera-loading-box">
+                    <p>Requesting camera access...</p>
+                    <video ref={videoRef} autoPlay playsInline muted style={{ display: 'none' }} />
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Step 3: Gesture Calibration */}
+          {step === 3 && (
+            <motion.div
+              key="calibration"
+              className="onboarding-step"
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -30 }}
+            >
+              <div className="step-header">
+                <span className="step-icon-large">🤚</span>
+                <h1>Gesture Calibration</h1>
+                <p>Let's make sure hand tracking works for you. Follow each gesture below.</p>
+              </div>
+
+              {cameraError ? (
+                <div className="camera-error-box">
+                  <p>Camera not available — skipping calibration.</p>
+                  <p className="camera-error-hint">You'll use mouse drawing instead.</p>
+                </div>
+              ) : (
+                <div className="calibration-container">
+                  <div className="calibration-video-box">
+                    <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', maxWidth: 360, borderRadius: 12, transform: 'scaleX(-1)' }} />
+                    {!mpLoaded && <p className="calibration-loading">Loading hand tracking...</p>}
+                  </div>
+
+                  <div className="calibration-gestures">
+                    {CALIBRATION_GESTURES.map((g, i) => {
+                      const done = calibrated[g.id];
+                      const active = i === calibrationIndex && !done;
+                      return (
+                        <div key={g.id} className={`calibration-item ${done ? 'calibration-done' : ''} ${active ? 'calibration-active' : ''}`}>
+                          <span className="calibration-icon">{done ? '✅' : g.icon}</span>
+                          <span className="calibration-label">{g.label}</span>
+                          {active && calibrationTimeout && (
+                            <span className="calibration-hint">{g.hint} — try again</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {calibrationIndex >= CALIBRATION_GESTURES.length && (
+                    <motion.p className="calibration-complete"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}>
+                      All gestures detected! You're ready to draw.
+                    </motion.p>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Step 4: Profile */}
+          {step === 4 && (
             <motion.div
               key="profile"
               className="onboarding-step"
@@ -163,7 +367,7 @@ export default function Onboarding() {
                   <div className="preview-card">
                     <span className="preview-emoji">🖼️</span>
                     <h3>Your first week</h3>
-                    <p>Point your finger at the webcam to draw. 5 guided prompts, 3× per week, 5 minutes each. No mouse needed.</p>
+                    <p>Point your finger at the webcam to draw. 5 guided prompts, 3x per week, 5 minutes each. No mouse needed.</p>
                     <div className="preview-prompts">
                       <span>⚡ Energy</span>
                       <span>🫂 Body</span>
@@ -185,7 +389,7 @@ export default function Onboarding() {
             </button>
           )}
           <button className="btn btn-lg btn-primary" onClick={handleNext} disabled={!canProceed()}>
-            {step === 2 ? 'Start Drawing →' : 'Continue →'}
+            {step === TOTAL_STEPS ? 'Start Drawing →' : 'Continue →'}
           </button>
         </div>
       </div>

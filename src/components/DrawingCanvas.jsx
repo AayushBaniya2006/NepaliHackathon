@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 
-const DrawingCanvas = forwardRef(({ width, height, currentColor, brushSize = 4 }, ref) => {
+const DrawingCanvas = forwardRef(({ width, height, currentColor, brushSize = 4, onStrokePoint }, ref) => {
   const canvasRef = useRef(null);
   const isDrawingRef = useRef(false);
   const prevPointRef = useRef(null);
@@ -96,6 +96,7 @@ const DrawingCanvas = forwardRef(({ width, height, currentColor, brushSize = 4 }
 
       prevPrevPointRef.current = prevPointRef.current;
       prevPointRef.current = current;
+      onStrokePoint?.({ x: canvasX, y: canvasY, t: Date.now() });
     },
     eraseAt: (x, y) => {
       const ctx = canvasRef.current?.getContext('2d');
@@ -138,6 +139,7 @@ const DrawingCanvas = forwardRef(({ width, height, currentColor, brushSize = 4 }
       mousePrev = { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
       mousePrev2 = null;
       drawDot(canvas.getContext('2d'), mousePrev.x, mousePrev.y);
+      onStrokePoint?.({ x: mousePrev.x, y: mousePrev.y, t: Date.now() });
     };
 
     const handleMouseMove = (e) => {
@@ -153,6 +155,7 @@ const DrawingCanvas = forwardRef(({ width, height, currentColor, brushSize = 4 }
       }
       mousePrev2 = mousePrev;
       mousePrev = current;
+      onStrokePoint?.({ x: current.x, y: current.y, t: Date.now() });
     };
 
     const handleMouseUp = () => {
