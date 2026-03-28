@@ -1,16 +1,38 @@
-# React + Vite
+# VoiceCanvas
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Nepal–US Hackathon 2026** — Mental health expression through webcam gestures, drawing, and AI-assisted clinical documentation.
 
-Currently, two official plugins are available:
+VoiceCanvas is a browser-based app for people who struggle to communicate verbally (nonverbal users, limited English, anxiety, etc.). Users draw with hand gestures; AI interprets the drawing into structured notes; optional voice playback helps users hear their feelings articulated.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Tech stack
 
-## React Compiler
+- React (Vite)
+- MediaPipe Hands (gesture / drawing)
+- Claude API (vision + clinical note generation)
+- ElevenLabs (optional text-to-speech)
+- Local storage for demo sessions
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Setup
 
-## Expanding the ESLint configuration
+```bash
+npm install
+npm run dev
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Create a `.env` file in the project root with your API keys (never commit `.env`; it is gitignored).
+
+## Scripts
+
+| Command | Description |
+|--------|-------------|
+| `npm run dev` | Start dev server |
+| `npm run build` | Production build |
+| `npm run preview` | Preview production build |
+
+## Disclaimer
+
+Demo / hackathon build — not a medical device, not HIPAA compliant, not for clinical use without proper review.
+
+---
+
+Repository: [NepaliHackathon](https://github.com/AayushBaniya2006/NepaliHackathon)
