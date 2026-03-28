@@ -8,7 +8,7 @@ export default function GlobalNav() {
   const location = useLocation();
 
   // Hide on onboarding and draw routes
-  if (location.pathname === '/onboarding' || location.pathname === '/draw') {
+  if (location.pathname === '/' || location.pathname === '/onboarding' || location.pathname === '/draw') {
     return null;
   }
 
@@ -35,10 +35,18 @@ export default function GlobalNav() {
 
         <ul className="global-nav__links">
           <li>
-            <button onClick={() => navigate('/#metrics')}>How It Works</button>
+            <button onClick={e => {
+              e.preventDefault();
+              if (location.pathname === '/') {
+                const el = document.getElementById('how-it-works-steps');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              } else {
+                navigate('/#how-it-works-steps');
+              }
+            }}>How It Works</button>
           </li>
           <li>
-            <button onClick={() => navigate('/dashboard')}>Platform</button>
+            <button onClick={() => navigate('/app')}>Platform</button>
           </li>
           <li>
             <button onClick={() => navigate('/resources')}>Resources</button>

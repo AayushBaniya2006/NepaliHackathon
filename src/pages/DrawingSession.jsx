@@ -80,13 +80,26 @@ export default function DrawingSession({ promptOverride }) {
 
   useEffect(() => {
     if (!timerActive || timeLeft <= 0) return;
+
+    let hidden = false;
+    const handleVisibility = () => {
+      hidden = document.hidden;
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     const interval = setInterval(() => {
-      setTimeLeft(t => {
-        if (t <= 1) { setTimerActive(false); return 0; }
-        return t - 1;
-      });
+      if (!hidden) {
+        setTimeLeft(t => {
+          if (t <= 1) { setTimerActive(false); return 0; }
+          return t - 1;
+        });
+      }
     }, 1000);
-    return () => clearInterval(interval);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [timerActive, timeLeft]);
 
   useEffect(() => {
@@ -130,6 +143,14 @@ export default function DrawingSession({ promptOverride }) {
 
     const dataUrl = canvasRef.current?.toDataURL();
     if (!dataUrl) { setIsProcessing(false); return; }
+
+    // Check canvas data size (max 5MB)
+    const sizeKB = (dataUrl.length * 0.75) / 1024;
+    if (sizeKB > 5000) {
+      setIsProcessing(false);
+      alert('Drawing is too large. Please clear some and try again.');
+      return;
+    }
 
     // Stage 1: Capture (0-30%)
     setAnalyzeProgress(15);

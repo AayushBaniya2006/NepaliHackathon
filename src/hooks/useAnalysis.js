@@ -133,11 +133,41 @@ export function useAnalysis() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const makeRequest = async (url, options, timeoutMs = 30000) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeout);
+      return res;
+    } catch (err) {
+      clearTimeout(timeout);
+      if (err.name === 'AbortError') throw new Error('Request timed out');
+      throw err;
+    }
+  };
+
   const analyzeDrawing = useCallback(async (canvasDataUrl, promptId, promptLabel) => {
     setLoading(true);
     setError(null);
 
     const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
+
+    // Try server proxy first
+    try {
+      const response = await makeRequest('/api/analyze/drawing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: canvasDataUrl, promptId, promptLabel }),
+      });
+      if (response.ok) {
+        const result = await response.json();
+        setLoading(false);
+        return result;
+      }
+    } catch { /* proxy unavailable, try direct */ }
+
+    // Fallback: direct API call
     if (!apiKey) {
       await new Promise(r => setTimeout(r, 2500));
       const mock = getMockAnalysis(promptId);
@@ -147,7 +177,7 @@ export function useAnalysis() {
 
     try {
       const base64 = canvasDataUrl.split(',')[1];
-      const response = await fetch(API_URL, {
+      const response = await makeRequest(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -12,76 +12,104 @@ export function useClaude() {
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
 
+  const makeRequest = async (url, options, timeoutMs = 30000) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeout);
+      return res;
+    } catch (err) {
+      clearTimeout(timeout);
+      if (err.name === 'AbortError') throw new Error('Request timed out');
+      throw err;
+    }
+  };
+
   const interpretDrawing = useCallback(async (canvasDataUrl, assessmentType = 'Free Expression') => {
     setLoading(true);
     setError(null);
 
     const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
-    if (!apiKey) {
-      console.warn('Claude API key not configured. Using high-fidelity mock data for demo transition.');
-      // Mock delay for realism
-      await new Promise(r => setTimeout(r, 2000));
-      const mockResult = getMockDrawingResult(assessmentType);
-      setResult(mockResult);
-      setLoading(false);
-      return mockResult;
-    }
 
+    // Try server proxy first
+    let response;
     try {
-      // Extract base64 from data URL
-      const base64 = canvasDataUrl.split(',')[1];
-
-      const response = await fetch(CLAUDE_API_URL, {
+      response = await makeRequest('/api/analyze/drawing', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1024,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'image',
-                  source: {
-                    type: 'base64',
-                    media_type: 'image/png',
-                    data: base64,
-                  },
-                },
-                {
-                  type: 'text',
-                  text: `Interpret this drawing from a non-verbal user. 
-                  CONTEXT: This is a "${assessmentType}" clinical drawing assessment. 
-                  Please analyze the visual metaphors and emotional state accordingly.`,
-                },
-              ],
-            },
-          ],
-          system: SYSTEM_PROMPT,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: canvasDataUrl, promptId: assessmentType, promptLabel: assessmentType }),
       });
+      if (response.ok) {
+        const result = await response.json();
+        setResult(result);
+        setLoading(false);
+        return result;
+      }
+    } catch { /* proxy unavailable, try direct */ }
 
-      if (!response.ok) throw new Error(`Claude API error: ${response.status}`);
+    // Fallback: direct API call (only if proxy fails)
+    if (apiKey) {
+      try {
+        const base64 = canvasDataUrl.split(',')[1];
 
-      const data = await response.json();
-      const content = data.content[0].text;
-      const parsed = JSON.parse(content);
-      setResult(parsed);
-      setLoading(false);
-      return parsed;
-    } catch (err) {
-      console.error('Claude error, falling back to mock:', err);
-      const mockResult = getMockDrawingResult(assessmentType);
-      setResult(mockResult);
-      setLoading(false);
-      return mockResult;
+        response = await makeRequest(CLAUDE_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true',
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1024,
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'image',
+                    source: {
+                      type: 'base64',
+                      media_type: 'image/png',
+                      data: base64,
+                    },
+                  },
+                  {
+                    type: 'text',
+                    text: `Interpret this drawing from a non-verbal user.
+                    CONTEXT: This is a "${assessmentType}" clinical drawing assessment.
+                    Please analyze the visual metaphors and emotional state accordingly.`,
+                  },
+                ],
+              },
+            ],
+            system: SYSTEM_PROMPT,
+          }),
+        });
+
+        if (!response.ok) throw new Error(`Claude API error: ${response.status}`);
+
+        const data = await response.json();
+        const content = data.content[0].text;
+        const parsed = JSON.parse(content);
+        setResult(parsed);
+        setLoading(false);
+        return parsed;
+      } catch (err) {
+        console.error('Claude error, falling back to mock:', err);
+      }
+    } else {
+      console.warn('Claude API key not configured. Using high-fidelity mock data for demo transition.');
     }
+
+    // Final fallback: mock data
+    await new Promise(r => setTimeout(r, 2000));
+    const mockResult = getMockDrawingResult(assessmentType);
+    setResult(mockResult);
+    setLoading(false);
+    return mockResult;
   }, []);
 
   /**
@@ -89,6 +117,20 @@ export function useClaude() {
    */
   const recognizeSign = useCallback(async (frameDataUrl) => {
     const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
+
+    // Try server proxy first
+    try {
+      const response = await makeRequest('/api/analyze/sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: frameDataUrl }),
+      });
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch { /* proxy unavailable, try direct */ }
+
+    // Fallback: direct API call
     if (!apiKey) {
       return { recognized: false, sign: '', confidence: 'low', description: 'API key not configured' };
     }
@@ -96,7 +138,7 @@ export function useClaude() {
     try {
       const base64 = frameDataUrl.split(',')[1];
 
-      const response = await fetch(CLAUDE_API_URL, {
+      const response = await makeRequest(CLAUDE_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -149,6 +191,24 @@ export function useClaude() {
     setError(null);
 
     const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
+    const message = signedWords.join(' ');
+
+    // Try server proxy first
+    try {
+      const response = await makeRequest('/api/analyze/sign-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ signedWords }),
+      });
+      if (response.ok) {
+        const parsed = await response.json();
+        setResult(parsed);
+        setLoading(false);
+        return parsed;
+      }
+    } catch { /* proxy unavailable, try direct */ }
+
+    // Fallback: direct API call
     if (!apiKey) {
       setError('Claude API key not configured.');
       setLoading(false);
@@ -156,9 +216,7 @@ export function useClaude() {
     }
 
     try {
-      const message = signedWords.join(' ');
-
-      const response = await fetch(CLAUDE_API_URL, {
+      const response = await makeRequest(CLAUDE_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
