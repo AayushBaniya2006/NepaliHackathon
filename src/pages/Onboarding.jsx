@@ -67,6 +67,36 @@ export default function Onboarding() {
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState(null);
 
+  /** Bind MediaStream to a <_VIDEO> node; safe to call on mount and after getUserMedia. */
+  const attachStreamToVideo = useCallback((el) => {
+    if (!el) return;
+    const stream = streamRef.current;
+    if (!stream) return;
+    if (el.srcObject !== stream) {
+      setCameraReady(false);
+      el.srcObject = stream;
+    }
+    const markReady = () => {
+      setCameraReady(true);
+    };
+    el.onloadeddata = markReady;
+    el.oncanplay = markReady;
+    el.muted = true;
+    el.playsInline = true;
+    void el.play().then(markReady).catch(() => {
+      if (el.readyState >= 2) markReady();
+    });
+    if (el.readyState >= 2) markReady();
+  }, []);
+
+  const bindVideoRef = useCallback(
+    (el) => {
+      videoRef.current = el;
+      attachStreamToVideo(el);
+    },
+    [attachStreamToVideo]
+  );
+
   // Calibration state (step 3)
   const [calibrationIndex, setCalibrationIndex] = useState(0);
   const [calibrated, setCalibrated] = useState({});
@@ -100,26 +130,19 @@ export default function Onboarding() {
       }
 
       const attachToVideo = () => {
-        const v = videoRef.current;
-        const s = streamRef.current;
-        if (!v || !s || cancelled) return;
-        if (v.srcObject !== s) {
-          setCameraReady(false);
-          v.srcObject = s;
-          v.onloadeddata = () => setCameraReady(true);
-        }
-        if (v.readyState >= 2) setCameraReady(true);
+        if (cancelled) return;
+        attachStreamToVideo(videoRef.current);
+        requestAnimationFrame(() => attachStreamToVideo(videoRef.current));
       };
 
       attachToVideo();
-      requestAnimationFrame(attachToVideo);
     }
 
     ensureCamera();
     return () => {
       cancelled = true;
     };
-  }, [step]);
+  }, [step, attachStreamToVideo]);
 
   // Stop camera when leaving step 3
   useEffect(() => {
@@ -127,7 +150,7 @@ export default function Onboarding() {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(t => t.stop());
         streamRef.current = null;
-        setCameraReady(false);
+        queueMicrotask(() => setCameraReady(false));
       }
     }
   }, [step]);
@@ -182,7 +205,7 @@ export default function Onboarding() {
     const expected = CALIBRATION_GESTURES[calibrationIndex]?.id;
     if (calibrated[expected]) return;
 
-    setCalibrationTimeout(false);
+    queueMicrotask(() => setCalibrationTimeout(false));
     calibrationTimerRef.current = setTimeout(() => {
       setCalibrationTimeout(true);
     }, 5000);
@@ -303,15 +326,19 @@ export default function Onboarding() {
                     <p>{cameraError}</p>
                     <p className="camera-error-hint">You can still draw with your mouse in the drawing session.</p>
                   </div>
-                ) : cameraReady ? (
-                  <div className="camera-preview-box">
-                    <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', maxWidth: 480, borderRadius: 12, transform: 'scaleX(-1)' }} />
-                    <p className="camera-success">Camera connected successfully!</p>
-                  </div>
                 ) : (
-                  <div className="camera-loading-box">
-                    <p>Requesting camera access...</p>
-                    <video ref={videoRef} autoPlay playsInline muted style={{ display: 'none' }} />
+                  <div className="camera-preview-box onboarding-camera-stage">
+                    <video
+                      ref={bindVideoRef}
+                      className="onboarding-live-video"
+                      autoPlay
+                      playsInline
+                      muted
+                    />
+                    {!cameraReady && (
+                      <p className="camera-preview-status camera-preview-status--loading">Requesting camera access...</p>
+                    )}
+                    {cameraReady && <p className="camera-success camera-preview-status">Camera connected successfully!</p>}
                   </div>
                 )}
               </div>
@@ -345,8 +372,8 @@ export default function Onboarding() {
                 <div className="calibration-container">
                   <div className="calibration-video-box">
                     <video
-                      ref={videoRef}
-                      className="calibration-video"
+                      ref={bindVideoRef}
+                      className="onboarding-live-video"
                       autoPlay
                       playsInline
                       muted
