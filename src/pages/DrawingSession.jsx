@@ -74,6 +74,7 @@ export default function DrawingSession({ promptOverride }) {
   const [analyzeStage, setAnalyzeStage] = useState('');
 
   const stampCooldownRef = useRef(false);
+  const [stampFeedbackName, setStampFeedbackName] = useState('');
 
   const { recognizeSign, interpretSignMessage, loading: claudeLoading } = useClaude();
   const { analyzeDrawing, loading: analysisLoading } = useAnalysis();
@@ -113,22 +114,27 @@ export default function DrawingSession({ promptOverride }) {
     if (confidence !== undefined) setGestureConfidence(confidence);
     if (mode !== 'draw') return;
 
+    const stampGestures = ['fingers_2', 'fingers_3', 'fingers_4'];
+    const drawLikeGestures = ['index_up', 'pinch', ...stampGestures];
+
     if (detectedGesture === 'index_up' && fingertip) {
       canvasRef.current?.drawAt(fingertip.x, fingertip.y);
     } else if (detectedGesture === 'pinch' && fingertip) {
       canvasRef.current?.eraseAt(fingertip.x, fingertip.y);
       canvasRef.current?.resetPrevPoint();
-    } else if (['fingers_2', 'fingers_3', 'fingers_4'].includes(detectedGesture) && fingertip) {
-      if (!stampCooldownRef.current) {
-        const stamp = getStampByGesture(detectedGesture);
-        if (stamp) {
-          canvasRef.current?.placeStamp(fingertip.x, fingertip.y, stamp.draw);
-          stampCooldownRef.current = true;
-          setTimeout(() => { stampCooldownRef.current = false; }, 800);
-        }
+    } else if (stampGestures.includes(detectedGesture) && fingertip) {
+      const stamp = getStampByGesture(detectedGesture);
+      if (stamp && !stampCooldownRef.current) {
+        stampCooldownRef.current = true;
+        canvasRef.current?.placeStamp(fingertip.x, fingertip.y, stamp.draw);
+        canvasRef.current?.resetPrevPoint();
+        setStampFeedbackName(stamp.name);
+        window.setTimeout(() => {
+          stampCooldownRef.current = false;
+        }, 350);
+        window.setTimeout(() => setStampFeedbackName(''), 1200);
       }
-      canvasRef.current?.resetPrevPoint();
-    } else if (!['index_up', 'pinch', 'fingers_2', 'fingers_3', 'fingers_4'].includes(detectedGesture)) {
+    } else if (!drawLikeGestures.includes(detectedGesture)) {
       canvasRef.current?.resetPrevPoint();
     }
 
@@ -275,11 +281,6 @@ export default function DrawingSession({ promptOverride }) {
   const timerMinutes = Math.floor(timeLeft / 60);
   const timerSeconds = timeLeft % 60;
   const timerPct = (timeLeft / TIMER_SECONDS) * 100;
-
-  const activeStampName = (() => {
-    const stamp = getStampByGesture(gesture);
-    return stamp ? stamp.name : '';
-  })();
 
   return (
     <div className="drawing-session">
@@ -469,7 +470,7 @@ export default function DrawingSession({ promptOverride }) {
             {/* CC bar */}
             {mode === 'draw' && gesture !== 'none' && (
               <div className="ds-cc-bar">
-                <GestureIndicator gesture={gesture} isProcessing={isProcessing} inline stampName={activeStampName} />
+                <GestureIndicator gesture={gesture} isProcessing={isProcessing} inline stampName={stampFeedbackName} />
                 <GestureConfidenceBar confidence={gestureConfidence} />
               </div>
             )}
@@ -499,25 +500,22 @@ export default function DrawingSession({ promptOverride }) {
             <div className="ds-side-card ds-stamps-card">
               <div className="ds-sc-header">
                 <span>Stamps</span>
-                <span className="ds-sc-sub">Show fingers to place</span>
+                <span className="ds-sc-sub">At last canvas point</span>
               </div>
               <div className="ds-stamp-grid">
                 {STAMPS.map((stamp) => {
-                  const gestureLabel = stamp.fingerCount ? `${stamp.fingerCount} fingers` : 'tap to use';
-                  const isGestureStamp = stamp.gesture !== 'manual';
                   return (
                     <button key={stamp.id}
-                      className={`ds-stamp-btn ${isGestureStamp ? 'ds-stamp-gesture-bound' : ''}`}
+                      className="ds-stamp-btn"
                       onClick={() => {
-                        if (stamp.gesture === 'manual') {
-                          const centerX = 0.5;
-                          const centerY = 0.5;
-                          canvasRef.current?.placeStamp(centerX, centerY, stamp.draw);
-                        }
+                        const norm = canvasRef.current?.getLastStampNorm?.();
+                        const x = norm ? norm.x : 0.5;
+                        const y = norm ? norm.y : 0.5;
+                        canvasRef.current?.placeStamp(x, y, stamp.draw);
                       }}>
                       <StampPreview stamp={stamp} />
                       <span className="ds-stamp-name">{stamp.name}</span>
-                      <span className="ds-stamp-gesture">{gestureLabel}</span>
+                      <span className="ds-stamp-gesture">click to use</span>
                     </button>
                   );
                 })}

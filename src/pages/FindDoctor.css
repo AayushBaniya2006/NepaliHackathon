@@ -1,6 +1,8 @@
 /* ===== Premium Specialist Finder ===== */
 .fd-page {
   min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
   background: #FAFAFB;
   font-family: var(--font-body), sans-serif;
   color: #111827;
@@ -31,9 +33,11 @@
 }
 
 .fd-body {
-  max-width: 1200px;
+  max-width: min(1440px, 100%);
   margin: 0 auto;
-  padding: 20px;
+  padding: 20px 24px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .fd-hero h1 {
@@ -42,7 +46,6 @@
   font-weight: 800;
   line-height: 1.2;
   margin-bottom: 20px;
-  max-width: 200px;
 }
 
 /* Filters (kept minimal to match original voicecanvas functionality) */
@@ -78,27 +81,15 @@
   cursor: pointer;
 }
 
-/* Masonry Layout */
+/* Full-width responsive grid */
 .fd-cards {
-  column-count: 4;
-  column-gap: 20px;
-}
-
-@media (max-width: 1100px) {
-  .fd-cards { column-count: 3; }
-}
-
-@media (max-width: 800px) {
-  .fd-cards { column-count: 2; }
-}
-
-@media (max-width: 500px) {
-  .fd-cards { column-count: 1; }
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+  gap: 20px;
+  align-items: stretch;
 }
 
 .fd-card {
-  break-inside: avoid;
-  margin-bottom: 20px;
   position: relative;
   background: white;
   border-radius: 24px;
@@ -106,6 +97,7 @@
   box-shadow: 0 4px 15px rgba(0,0,0,0.03);
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 /* 

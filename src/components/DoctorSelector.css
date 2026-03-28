@@ -238,6 +238,23 @@
   border: 2px solid var(--gray-200);
 }
 
+.ds-avatar.ds-avatar-photo {
+  padding: 0;
+  overflow: hidden;
+}
+
+.ds-avatar.ds-avatar-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ds-rating-outof {
+  color: var(--text-secondary);
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
 .ds-status-dot {
   position: absolute;
   bottom: 2px;
