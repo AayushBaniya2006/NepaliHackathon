@@ -89,7 +89,20 @@ function MiniSparkline({ data }) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { profile, sessions, getWeekNumber, getWeekSessions, getAverageStress } = useStorage();
+  const { profile, sessions, getWeekNumber, getWeekSessions, getAverageStress, setProfile } = useStorage();
+
+  const handleCaregiverPhoto = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setProfile({
+        ...(profile || {}),
+        caregiverPhotos: [...(profile?.caregiverPhotos || []), ev.target.result],
+      });
+    };
+    reader.readAsDataURL(file);
+  };
   const [selectedMood, setSelectedMood] = useState(null);
 
   useEffect(() => {
@@ -313,6 +326,27 @@ export default function Dashboard() {
                   <ProgressRing current={weekSessions.length} total={WEEKLY_GOAL} size={140} strokeWidth={12} color="#C4F038" />
                </div>
                <p className="monthly-desc">You have achieved <strong>{pct}%</strong> of your goal this week</p>
+             </div>
+
+             {/* Caregiver Photos */}
+             <div className="card">
+               <div className="card-top-header">
+                 <h3>Caregiver Photos</h3>
+                 <label style={{ cursor: 'pointer', fontSize: '1.4rem', lineHeight: 1, color: 'var(--teal-500)', userSelect: 'none' }} title="Upload photo">
+                   +
+                   <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleCaregiverPhoto} />
+                 </label>
+               </div>
+               {profile?.caregiverPhotos?.length > 0 ? (
+                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+                   {profile.caregiverPhotos.map((url, i) => (
+                     <img key={i} src={url} alt={`caregiver-${i}`}
+                       style={{ width: '60px', height: '60px', borderRadius: '10px', objectFit: 'cover', border: '2px solid var(--gray-100)' }} />
+                   ))}
+                 </div>
+               ) : (
+                 <p className="subtitle" style={{ marginTop: '8px' }}>Upload a photo from your caregiver to see it here as a comforting prompt before sessions.</p>
+               )}
              </div>
 
              {/* Schedule Card / Free Resources */}

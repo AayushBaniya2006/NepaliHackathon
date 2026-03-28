@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStorage } from '../hooks/useStorage';
+import { useElevenLabs } from '../hooks/useElevenLabs';
 import { DRAWING_PROMPTS } from '../utils/drawingPrompts';
 import { generateFHIRObservation, generateEHRNote, downloadFHIRJSON } from '../utils/fhirExport';
 import { exportClinicalNotePDF } from '../utils/pdfExport';
@@ -15,6 +16,7 @@ export default function ClinicianDashboard() {
 
   const avgStress = getAverageStress();
   const totalSessions = sessions.length;
+  const { speak: elevenSpeak, isPlaying: elevenPlaying, stop: elevenStop } = useElevenLabs();
 
   const stressTrend = useMemo(() => {
     return analytics.map((a, i) => ({
@@ -111,6 +113,18 @@ export default function ClinicianDashboard() {
               <span className="cd-stat-val">{analytics.filter(a => a.thresholdMet).length}</span>
               <span className="cd-stat-label">Clinical Alerts</span>
             </div>
+            <button
+              className={`btn btn-sm ${elevenPlaying ? 'btn-secondary' : 'btn-ghost'}`}
+              style={{ alignSelf: 'center' }}
+              onClick={() => {
+                if (elevenPlaying) { elevenStop(); return; }
+                const summary = `Clinical summary for ${profile?.name || 'patient'}. ${totalSessions} sessions recorded. Average stress score ${avgStress.toFixed(1)} out of 10. ${analytics.filter(a => a.thresholdMet).length} clinical threshold alerts. ${topFlags.map(([k, v]) => `${k}: ${v} sessions`).join('. ')}.`;
+                elevenSpeak(summary);
+              }}
+              title="Speak English clinical summary"
+            >
+              {elevenPlaying ? '⏹ Stop' : '🔊 Speak Summary'}
+            </button>
           </div>
         </motion.div>
 

@@ -5,6 +5,7 @@ Interpret the drawing with emotional intelligence and deep compassion.
 Output a JSON object with exactly this structure:
 {
   "personal_statement": "A warm, first-person statement (2-3 sentences) of how they might be feeling. Speak AS the user, helping them find the words they cannot say. Be gentle, validating, and human.",
+  "personal_statement_en": "The same warm statement expressed in natural English. If personal_statement is already in English, copy it here exactly.",
   "clinical_note": {
     "S": "Subjective: What the patient appears to be experiencing based on their visual expression.",
     "O": "Objective: Description of the drawing — colors used, patterns, symbols, intensity, spatial arrangement.",
@@ -81,6 +82,7 @@ Take their signed message and:
 Output a JSON object with exactly this structure:
 {
   "personal_statement": "A warm, first-person statement (2-3 sentences) based on what they signed. Expand their signs into full, natural language. Speak AS the user, helping them find the words they cannot say. Be gentle, validating, and human.",
+  "personal_statement_en": "The same warm statement expressed in natural English. If personal_statement is already in English, copy it here exactly.",
   "clinical_note": {
     "S": "Subjective: What the patient appears to be experiencing based on their signed communication.",
     "O": "Objective: Description of the signs used, communication method, and observed emotional state.",

@@ -646,6 +646,61 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ===== EMPLOYER SECTION ===== */}
+      <section style={{ background: '#F8FAFC', padding: '100px 0' }}>
+        <div className="ld-container">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', alignItems: 'center' }}>
+            {/* Left: copy */}
+            <div>
+              <span className="section-tag">FOR EMPLOYERS</span>
+              <h2 style={{ fontSize: '2.5rem', fontWeight: 800, lineHeight: 1.15, margin: '16px 0 20px', color: '#0F172A' }}>
+                Mental wellness as an<br />employee benefit.
+              </h2>
+              <p style={{ color: '#475569', lineHeight: 1.7, marginBottom: '24px' }}>
+                Give your entire workforce access to MindHaven — nonverbal mental health support in 15 languages — for less than your coffee budget.
+              </p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '24px' }}>
+                <span style={{ fontSize: '3.5rem', fontWeight: 900, color: '#0F172A', lineHeight: 1 }}>$2</span>
+                <span style={{ color: '#64748B', fontSize: '1rem' }}>/employee/month</span>
+              </div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {[
+                  'Unlimited drawing sessions per employee',
+                  'HR dashboard with anonymized team wellness trends',
+                  'FHIR-compliant export for corporate health plans',
+                  'AI insurance appeal engine included',
+                  'Supports 15 languages — no exclusions for global teams',
+                ].map(perk => (
+                  <li key={perk} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#334155', fontSize: '0.95rem' }}>
+                    <span style={{ color: '#22C55E', fontWeight: 700 }}>✓</span> {perk}
+                  </li>
+                ))}
+              </ul>
+              <button
+                className="ld-btn ld-btn-primary"
+                onClick={() => {}}
+                style={{ fontSize: '1rem', padding: '14px 32px' }}
+              >
+                Partner with Us →
+              </button>
+            </div>
+            {/* Right: stat cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {[
+                { value: '$1,685', label: 'Avg. annual productivity loss per employee with untreated mental illness' },
+                { value: '4×', label: 'ROI on every $1 invested in workplace mental health programs' },
+                { value: '76%', label: 'Of employees say mental health support influences where they choose to work' },
+              ].map(stat => (
+                <div key={stat.value} style={{ background: '#fff', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: '20px' }}>
+                  <span style={{ fontSize: '2.2rem', fontWeight: 900, color: '#0F172A', minWidth: '80px' }}>{stat.value}</span>
+                  <p style={{ color: '#475569', fontSize: '0.875rem', lineHeight: 1.5, margin: 0 }}>{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ===== FINAL CTA / DRAW WHAT YOU THINK (heroBg) ===== */}
       <section className="ld-hero-footer" style={{ minHeight: '80vh', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div
