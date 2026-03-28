@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getPromptById } from '../utils/drawingPrompts';
 import { exportClinicalNotePDF } from '../utils/pdfExport';
+import { useStorage } from '../hooks/useStorage';
 import './SessionResults.css';
 
 export default function SessionResults() {
@@ -10,10 +11,67 @@ export default function SessionResults() {
   const navigate = useNavigate();
   const { result, canvasImage, promptId } = location.state || {};
   const prompt = getPromptById(promptId);
+  const { profile, sessions } = useStorage();
+
+  const [shared, setShared] = useState(false);
+  const [voiceLang, setVoiceLang] = useState('patient'); // 'patient' | 'en'
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   useEffect(() => {
     if (!result) navigate('/dashboard');
   }, [result, navigate]);
+
+  // Check if already shared
+  useEffect(() => {
+    if (!result) return;
+    const latest = sessions[sessions.length - 1];
+    if (latest?.sharedWithDoctor) setShared(true);
+  }, [result, sessions]);
+
+  const handleShare = useCallback(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('mc_sessions') || '[]');
+      if (stored.length > 0) {
+        stored[stored.length - 1].sharedWithDoctor = true;
+        localStorage.setItem('mc_sessions', JSON.stringify(stored));
+      }
+    } catch { /* ignore */ }
+    setShared(true);
+  }, []);
+
+  const handleSpeak = useCallback((lang) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+
+    const text = lang === 'en'
+      ? (result?.personal_statement_en || result?.personal_statement || '')
+      : (result?.personal_statement || '');
+
+    if (!text) return;
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+
+    if (lang === 'en') {
+      utterance.lang = 'en-US';
+    } else if (profile?.language) {
+      const langMap = { ne: 'ne-NP', es: 'es-ES', zh: 'zh-CN', hi: 'hi-IN', ar: 'ar-SA', fr: 'fr-FR', pt: 'pt-BR', tl: 'fil-PH', vi: 'vi-VN', ko: 'ko-KR', so: 'so-SO' };
+      utterance.lang = langMap[profile.language] || 'en-US';
+    }
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    setVoiceLang(lang);
+    window.speechSynthesis.speak(utterance);
+  }, [result, profile]);
+
+  const handleStopSpeaking = useCallback(() => {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+  }, []);
 
   if (!result) return null;
 
@@ -138,7 +196,7 @@ export default function SessionResults() {
           </div>
         </motion.div>
 
-        {/* Personal Statement */}
+        {/* Personal Statement + Voice */}
         <motion.div
           className="sr-statement card"
           initial={{ opacity: 0, y: 20 }}
@@ -146,8 +204,52 @@ export default function SessionResults() {
           transition={{ delay: 0.4 }}
         >
           <h3 className="sr-section-label">Your Expression — In Words</h3>
-          <blockquote className="sr-quote">"{result.personal_statement}"</blockquote>
+          <blockquote className="sr-quote">
+            "{voiceLang === 'en' && result.personal_statement_en
+              ? result.personal_statement_en
+              : result.personal_statement}"
+          </blockquote>
+
+          <div className="sr-voice-controls">
+            {isSpeaking ? (
+              <button className="btn btn-sm btn-secondary" onClick={handleStopSpeaking}>
+                Stop
+              </button>
+            ) : (
+              <button className="btn btn-sm btn-primary" onClick={() => handleSpeak(voiceLang)}>
+                Listen
+              </button>
+            )}
+            <button
+              className={`btn btn-sm ${voiceLang === 'patient' ? 'btn-outline sr-lang-active' : 'btn-ghost'}`}
+              onClick={() => { setVoiceLang('patient'); if (isSpeaking) handleSpeak('patient'); }}
+            >
+              My Language
+            </button>
+            <button
+              className={`btn btn-sm ${voiceLang === 'en' ? 'btn-outline sr-lang-active' : 'btn-ghost'}`}
+              onClick={() => { setVoiceLang('en'); if (isSpeaking) handleSpeak('en'); }}
+            >
+              Hear in English
+            </button>
+          </div>
         </motion.div>
+
+        {/* Crisis Banner */}
+        {(score >= 8 || result.crisis_flag) && (
+          <motion.div
+            className="sr-crisis-banner"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 }}
+          >
+            <p className="sr-crisis-text">It sounds like you're going through a lot. You don't have to face this alone.</p>
+            <div className="sr-crisis-actions">
+              <a href="tel:988" className="btn btn-sm btn-primary">Call 988</a>
+              <a href="sms:741741&body=HOME" className="btn btn-sm btn-secondary">Text HOME to 741741</a>
+            </div>
+          </motion.div>
+        )}
 
         {/* Clinical Note */}
         {result.clinical_note && (
@@ -177,14 +279,24 @@ export default function SessionResults() {
           <button className="btn btn-primary btn-lg" onClick={() => navigate('/dashboard')}>
             ← Back to Dashboard
           </button>
+          <button
+            className={`btn ${shared ? 'btn-ghost' : 'btn-secondary'}`}
+            onClick={handleShare}
+            disabled={shared}
+          >
+            {shared ? 'Shared with Doctor' : 'Share with My Doctor'}
+          </button>
+          <button className="btn btn-outline" onClick={() => handleSpeak(voiceLang)}>
+            Listen Again
+          </button>
           <button className="btn btn-secondary" onClick={handleDownloadPDF}>
-            📥 Download Clinical PDF
+            Download Clinical PDF
           </button>
           <button className="btn btn-outline" onClick={() => navigate('/insurance', { state: { result } })}>
-            📋 Fill Insurance Form
+            Fill Insurance Form
           </button>
           <button className="btn btn-ghost" onClick={() => navigate('/clinician')}>
-            👨‍⚕️ Clinician View
+            Clinician View
           </button>
         </motion.div>
 
