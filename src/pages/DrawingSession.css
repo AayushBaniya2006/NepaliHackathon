@@ -1,0 +1,570 @@
+/* ===== Drawing Session — Meeting UI Layout ===== */
+.drawing-session {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--gray-50);
+  overflow: hidden;
+}
+
+/* ===== Header ===== */
+.ds-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: var(--bg-white);
+  border-bottom: 1px solid var(--gray-100);
+  z-index: 20;
+  gap: var(--space-md);
+}
+
+.ds-header-left,
+.ds-header-center,
+.ds-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.ds-header-left { flex-shrink: 0; }
+.ds-header-center { flex-shrink: 0; }
+.ds-header-right { margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
+
+.ds-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--gray-200);
+  margin: 0 4px;
+}
+
+.ds-prompt-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  background: var(--gray-50);
+  border: 1.5px solid var(--pc);
+  border-radius: var(--radius-full);
+}
+
+.ds-prompt-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ds-prompt-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--pc);
+}
+
+/* Mode Toggle */
+.ds-mode-toggle {
+  display: flex;
+  background: var(--gray-100);
+  border-radius: var(--radius-full);
+  padding: 3px;
+}
+
+.ds-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.ds-mode-btn:hover { color: var(--gray-700); }
+
+.ds-mode-active {
+  background: var(--bg-white);
+  color: var(--gray-900);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Timer */
+.ds-timer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ds-timer-text {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--gray-700);
+  min-width: 40px;
+}
+
+.ds-timer[data-low="true"] .ds-timer-text { color: var(--error); }
+
+/* Color strip */
+.ds-color-strip {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  padding: 4px 8px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius-full);
+}
+
+.ds-color-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  border: 2px solid transparent;
+}
+
+.ds-color-dot:hover { transform: scale(1.15); }
+
+.ds-color-active {
+  border-color: var(--gray-900);
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px var(--bg-white), 0 0 0 4px var(--gray-300);
+}
+
+.ds-analyze-btn { min-width: 140px; }
+
+/* ===== Body — Two Column ===== */
+.ds-body {
+  flex: 1;
+  display: flex;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  overflow: hidden;
+  min-height: 0;
+}
+
+.ds-main-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ds-side-col {
+  width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* ===== Video Card ===== */
+.ds-video-card {
+  flex: 1;
+  background: var(--gray-900);
+  border-radius: var(--radius-2xl);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+}
+
+/* Recording bar */
+.ds-recording-bar {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+}
+
+.ds-rec-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--coral-500);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.ds-rec-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.8);
+  background: rgba(0,0,0,0.4);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  backdrop-filter: blur(8px);
+}
+
+.ds-loading-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.6);
+  background: rgba(0,0,0,0.4);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+}
+
+.ds-mini-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-top-color: var(--teal-400);
+  border-radius: 50%;
+}
+
+/* Camera feed */
+.ds-camera-feed {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-2xl);
+}
+
+.ds-sign-cam {
+  max-width: 70%;
+  height: 85%;
+}
+
+/* Canvas overlay */
+.ds-video-card .canvas-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ds-video-card .canvas-container canvas {
+  pointer-events: auto;
+}
+
+/* Camera fallback */
+.ds-camera-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: var(--space-2xl);
+  text-align: center;
+  color: white;
+}
+
+.ds-fallback-icon { font-size: 3rem; margin-bottom: var(--space-md); }
+.ds-camera-fallback h3 { color: white; margin-bottom: var(--space-sm); }
+.ds-camera-fallback p { color: rgba(255,255,255,0.6); }
+.ds-fallback-note { color: rgba(255,255,255,0.4); font-size: 0.82rem; margin-top: var(--space-sm); }
+
+.ds-mouse-canvas {
+  width: 100%;
+  max-width: 1000px;
+  aspect-ratio: 16/9;
+  position: relative;
+  margin-top: var(--space-lg);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* Loading */
+.ds-cam-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  color: rgba(255,255,255,0.7);
+}
+
+.ds-spinner {
+  width: 44px;
+  height: 44px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top-color: var(--teal-400);
+  border-radius: 50%;
+}
+
+/* Sign guide */
+.ds-sign-guide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.ds-sign-frame {
+  width: 280px;
+  height: 280px;
+  border: 3px dashed var(--teal-400);
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.88rem;
+}
+
+/* Video controls — bottom bar inside video card */
+.ds-video-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  z-index: 5;
+}
+
+.ds-gesture-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.ds-gpill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(8px);
+  padding: 5px 14px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.ds-gpill-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ds-submit-btn {
+  box-shadow: 0 4px 20px rgba(13,148,136,0.4);
+}
+
+/* CC bar — gesture status */
+.ds-cc-bar {
+  position: absolute;
+  bottom: 100px;
+  left: 16px;
+  z-index: 10;
+}
+
+/* ===== Side Cards ===== */
+.ds-side-card {
+  background: var(--bg-white);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+  border: 1px solid var(--gray-100);
+  box-shadow: var(--shadow-card);
+}
+
+.ds-sc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.ds-sc-header span {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--gray-700);
+}
+
+/* Prompt card */
+.ds-prompt-card {
+  border-top: 3px solid var(--teal-500);
+  text-align: center;
+}
+
+.ds-prompt-big-icon { font-size: 2.2rem; display: block; margin-bottom: var(--space-sm); }
+.ds-prompt-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+.ds-prompt-clinical { font-size: 0.78rem; color: var(--gray-400); }
+
+/* Notes card */
+.ds-notes-desc {
+  font-size: 0.78rem;
+  color: var(--gray-400);
+  margin-bottom: var(--space-md);
+}
+
+.ds-note-field { margin-bottom: var(--space-md); }
+
+.ds-note-field label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  margin-bottom: 6px;
+}
+
+.ds-note-row { display: flex; gap: 4px; flex-wrap: wrap; }
+
+.ds-note-btn {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: var(--gray-100);
+  color: var(--gray-600);
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: var(--transition-fast);
+}
+
+.ds-note-btn:hover { background: var(--gray-200); }
+
+.ds-note-active {
+  background: var(--teal-50);
+  color: var(--teal-700);
+  border-color: var(--teal-400);
+}
+
+/* Stamps card */
+.ds-stamps-card { padding: var(--space-md); }
+
+.ds-sc-sub {
+  font-size: 0.68rem;
+  color: var(--gray-400);
+  font-weight: 400;
+}
+
+.ds-stamp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: var(--space-sm);
+}
+
+.ds-stamp-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  background: var(--gray-50);
+  border: 1.5px solid var(--gray-100);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.ds-stamp-btn:hover {
+  border-color: var(--gray-300);
+  background: var(--gray-100);
+}
+
+.ds-stamp-active {
+  border-color: var(--teal-400);
+  background: var(--teal-50);
+}
+
+.ds-stamp-gesture-bound {
+  border-color: var(--violet-400);
+  background: var(--violet-50);
+}
+
+.ds-stamp-preview {
+  width: 42px;
+  height: 34px;
+  image-rendering: auto;
+}
+
+.ds-stamp-name {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--gray-700);
+}
+
+.ds-stamp-gesture {
+  font-size: 0.6rem;
+  color: var(--gray-400);
+}
+
+/* ===== Analyzing overlay ===== */
+.ds-analyzing-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17,24,39,0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.ds-analyzing-content {
+  text-align: center;
+  max-width: 400px;
+  color: white;
+}
+
+.ds-analyzing-spinner {
+  width: 52px;
+  height: 52px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top-color: var(--teal-400);
+  border-radius: 50%;
+  margin: 0 auto var(--space-xl);
+}
+
+.ds-analyzing-content h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: var(--space-sm); }
+.ds-analyzing-content p { color: rgba(255,255,255,0.55); font-size: 0.92rem; }
+
+/* ===== Responsive ===== */
+@media (max-width: 1024px) {
+  .ds-side-col { width: 280px; }
+}
+
+@media (max-width: 900px) {
+  .ds-body { flex-direction: column; }
+  .ds-main-col { min-height: 50vh; }
+  .ds-side-col {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+  .ds-side-card { min-width: 260px; flex: 1; }
+  .ds-header {
+    padding: 8px 12px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .ds-color-strip { order: 10; }
+  .ds-header-left,
+  .ds-header-center { width: auto; }
+}
+
+@media (max-width: 600px) {
+  .ds-color-strip { display: none; }
+  .ds-side-col { flex-direction: column; }
+  .ds-side-card { min-width: 0; }
+  .ds-header-right { flex-wrap: nowrap; }
+}

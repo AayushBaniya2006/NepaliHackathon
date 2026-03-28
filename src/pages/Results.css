@@ -1,0 +1,190 @@
+/* ===== Results Page: Minimalist Calm ===== */
+.results-page {
+  min-height: 100vh;
+  padding: 40px 0;
+  background: var(--bg-primary);
+}
+
+.results-container {
+  max-width: 800px;
+}
+
+/* Header */
+.results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 40px;
+}
+
+.results-brand {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--sage);
+}
+
+/* Hero Section */
+.personal-statement {
+  background: white;
+  padding: 32px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
+  margin-bottom: 40px;
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 32px;
+  align-items: center;
+}
+
+.statement-drawing {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-minimal);
+}
+
+.drawing-preview {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+}
+
+.statement-text h2 {
+  font-size: 0.8rem;
+  color: var(--sage);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
+}
+
+.statement-content {
+  font-size: 1.4rem;
+  color: var(--text-main);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* Clinical Note */
+.soap-note {
+  background: white;
+  padding: 32px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
+  margin-bottom: 40px;
+}
+
+.soap-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: var(--text-main);
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--bg-secondary);
+  padding-bottom: 12px;
+}
+
+.soap-section {
+  margin-bottom: 24px;
+}
+
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.section-content {
+  font-size: 0.95rem;
+  color: var(--text-main);
+  line-height: 1.6;
+}
+
+/* Brain Section */
+.brain-results-section {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.brain-section-title {
+  font-size: 1rem;
+  color: var(--text-main);
+  margin-bottom: 12px;
+}
+
+.brain-section-desc {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-bottom: 24px;
+}
+
+/* Actions */
+.results-actions {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 40px;
+}
+
+.action-card {
+  flex: 1;
+  max-width: 300px;
+  height: auto;
+  padding: 24px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: white;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-minimal);
+  color: var(--text-main);
+}
+
+.action-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-float);
+}
+
+.action-icon {
+  font-size: 2rem;
+}
+
+.action-text strong {
+  display: block;
+  font-size: 1rem;
+  color: var(--sage);
+}
+
+.action-text small {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+/* Hold Notice */
+.voice-hold-notice {
+  text-align: center;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border: 1px dashed var(--sage);
+  border-radius: var(--radius-md);
+  margin-bottom: 24px;
+}
+
+.voice-hold-notice span {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+/* Guide Wrapper */
+.results-guide-wrapper {
+  margin-bottom: 40px;
+  display: flex;
+  justify-content: center;
+}
+
+.results-guide-wrapper .doctor-guide {
+  box-shadow: var(--shadow-float);
+  background: white !important;
+  border-radius: var(--radius-xl);
+}

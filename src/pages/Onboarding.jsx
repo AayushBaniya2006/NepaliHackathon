@@ -1,0 +1,194 @@
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useStorage } from '../hooks/useStorage';
+import './Onboarding.css';
+
+const CONSENT_ITEMS = [
+  {
+    id: 'nonverbal',
+    label: 'I confirm the patient cannot reliably speak or communicate verbally',
+    sublabel: 'This triggers Mental Health Parity Act protections for nonverbal individuals',
+    required: false,
+  },
+  {
+    id: 'data',
+    label: 'Allow anonymized data to improve AI accuracy',
+    sublabel: 'No personal info is shared — only drawing patterns help train better screening',
+    required: false,
+  },
+  {
+    id: 'disclaimer',
+    label: 'I understand this is a screening tool, not a medical diagnosis',
+    sublabel: 'Results should be reviewed by a licensed clinician',
+    required: true,
+  },
+];
+
+export default function Onboarding() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const role = location.state?.role || 'patient';
+  const { setProfile, setOnboarded } = useStorage();
+
+  const [step, setStep] = useState(1);
+  const [consent, setConsent] = useState({});
+  const [name, setName] = useState('');
+
+  const isCaregiver = role === 'caregiver';
+
+  const canProceed = () => {
+    if (step === 1) {
+      return consent.disclaimer === true;
+    }
+    return true;
+  };
+
+  const handleNext = () => {
+    if (step === 1 && canProceed()) {
+      setStep(2);
+    } else if (step === 2) {
+      setProfile({
+        role,
+        name: name || (isCaregiver ? 'Caregiver' : 'Patient'),
+        isNonverbal: consent.nonverbal || false,
+        consentData: consent.data || false,
+        startDate: new Date().toISOString(),
+      });
+      setOnboarded(true);
+      navigate('/dashboard');
+    }
+  };
+
+  const toggleConsent = (id) => {
+    setConsent(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  return (
+    <div className="onboarding">
+      <div className="onboarding-bg">
+        <div className="onboarding-orb onboarding-orb-1" />
+        <div className="onboarding-orb onboarding-orb-2" />
+      </div>
+
+      <div className="onboarding-container">
+        {/* Progress */}
+        <motion.div className="onboarding-progress" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <div className="progress-track">
+            <div className="progress-fill" style={{ width: `${(step / 2) * 100}%` }} />
+          </div>
+          <span className="progress-label">Step {step} of 2</span>
+        </motion.div>
+
+        <AnimatePresence mode="wait">
+          {step === 1 && (
+            <motion.div
+              key="consent"
+              className="onboarding-step"
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -30 }}
+            >
+              <div className="step-header">
+                <span className="step-icon-large">{isCaregiver ? '🛡️' : '✋'}</span>
+                <h1>{isCaregiver ? 'Caregiver Setup' : 'Welcome, Let\'s Get Started'}</h1>
+                <p>
+                  {isCaregiver
+                    ? 'A few quick consents to protect the person you care for.'
+                    : 'Just a few things before we begin your first drawing session.'}
+                </p>
+              </div>
+
+              <div className="consent-list">
+                {CONSENT_ITEMS.map((item) => {
+                  if (item.id === 'nonverbal' && !isCaregiver) return null;
+                  return (
+                    <button
+                      key={item.id}
+                      className={`consent-item ${consent[item.id] ? 'consent-checked' : ''}`}
+                      onClick={() => toggleConsent(item.id)}
+                    >
+                      <div className={`consent-checkbox ${consent[item.id] ? 'checked' : ''}`}>
+                        {consent[item.id] && '✓'}
+                      </div>
+                      <div className="consent-text">
+                        <span className="consent-label">
+                          {item.label}
+                          {item.required && <span className="consent-required">*</span>}
+                        </span>
+                        <span className="consent-sublabel">{item.sublabel}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+
+          {step === 2 && (
+            <motion.div
+              key="profile"
+              className="onboarding-step"
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -30 }}
+            >
+              <div className="step-header">
+                <span className="step-icon-large">🎨</span>
+                <h1>Almost there!</h1>
+                <p>
+                  {isCaregiver
+                    ? 'What should we call you? This helps personalize the experience.'
+                    : 'Add a name so we can greet you. Then start your first drawing!'}
+                </p>
+              </div>
+
+              <div className="profile-form">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="name">
+                    {isCaregiver ? 'Your name (caregiver)' : 'Your name or nickname'}
+                  </label>
+                  <input
+                    id="name"
+                    type="text"
+                    className="form-input profile-input"
+                    placeholder={isCaregiver ? 'e.g., Sarah' : 'e.g., Alex'}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+
+                <div className="onboarding-preview">
+                  <div className="preview-card">
+                    <span className="preview-emoji">🖼️</span>
+                    <h3>Your first week</h3>
+                    <p>Point your finger at the webcam to draw. 5 guided prompts, 3× per week, 5 minutes each. No mouse needed.</p>
+                    <div className="preview-prompts">
+                      <span>⚡ Energy</span>
+                      <span>🫂 Body</span>
+                      <span>🌤️ Weather</span>
+                      <span>🛡️ Safe</span>
+                      <span>👾 Worry</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="onboarding-actions">
+          {step > 1 && (
+            <button className="btn btn-ghost" onClick={() => setStep(s => s - 1)}>
+              ← Back
+            </button>
+          )}
+          <button className="btn btn-lg btn-primary" onClick={handleNext} disabled={!canProceed()}>
+            {step === 2 ? 'Start Drawing →' : 'Continue →'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
