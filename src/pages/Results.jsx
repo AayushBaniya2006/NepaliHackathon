@@ -179,38 +179,6 @@ export default function Results() {
           </div>
         </motion.div>
 
-        {/* Actions */}
-        <motion.div
-          className="results-actions"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9 }}
-        >
-          <button
-            className="btn btn-amber btn-lg action-card"
-            onClick={() => navigate('/insurance', { state: { result, clinicalNote } })}
-            id="fill-insurance-btn"
-          >
-            <span className="action-icon">📋</span>
-            <span className="action-text">
-              <strong>Fill Insurance Form</strong>
-              <small>Auto-populated from your note</small>
-            </span>
-          </button>
-
-          <button
-            className="btn btn-primary btn-lg action-card"
-            onClick={() => navigate('/resources')}
-            id="find-care-btn"
-          >
-            <span className="action-icon">🏥</span>
-            <span className="action-text">
-              <strong>Find Free Care</strong>
-              <small>Local clinics & resources</small>
-            </span>
-          </button>
-        </motion.div>
-
         {/* PDF Download */}
         <motion.div
           className="download-section"

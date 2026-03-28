@@ -34,6 +34,7 @@ export default function DrawingSession() {
   const navigate = useNavigate();
   const location = useLocation();
   const promptId = location.state?.promptId || 'energy';
+  const preSessionMood = location.state?.preSessionMood ?? null;
   const prompt = getPromptById(promptId) || DRAWING_PROMPTS[0];
 
   const videoRef = useRef(null);
@@ -142,6 +143,15 @@ export default function DrawingSession() {
     const dataUrl = canvasRef.current?.toDataURL();
     if (!dataUrl) { setIsProcessing(false); return; }
 
+    const canvasPngBlob = await new Promise((resolve) => {
+      const canvas = canvasRef.current?.getCanvas();
+      if (canvas) {
+        canvas.toBlob((b) => resolve(b), 'image/png', 0.95);
+      } else {
+        resolve(null);
+      }
+    });
+
     const videoBlob = await stopRecorderAndGetBlob();
     const sessionId = Date.now();
 
@@ -156,6 +166,7 @@ export default function DrawingSession() {
         caregiverNote,
         webcamFrames: webcamFramesRef.current,
         strokeData: strokeDataRef.current,
+        preSessionMood,
       });
       saveAnalytics({
         promptId,
@@ -163,13 +174,16 @@ export default function DrawingSession() {
         indicators: result.indicators,
         pattern: result.pattern,
         thresholdMet: result.threshold_met,
+        preSessionMood,
       });
 
-      if (isAzureUploadConfigured() && videoBlob?.size) {
+      if (isAzureUploadConfigured() && (videoBlob?.size || canvasPngBlob?.size || dataUrl)) {
         uploadSessionReplayToAzure({
           patientId: VOICECANVAS_PATIENT_ID,
           sessionId,
-          videoBlob,
+          videoBlob: videoBlob?.size ? videoBlob : null,
+          canvasBlob: canvasPngBlob?.size ? canvasPngBlob : null,
+          canvasDataUrl: dataUrl,
           meta: {
             promptTitle: prompt.title,
             promptId,

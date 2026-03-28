@@ -194,16 +194,9 @@ export default function Landing() {
             <div className="cta-content">
               <h2>Are you a clinician?</h2>
               <p>
-                Access the clinician dashboard to review patient sessions,
-                generate EHR notes, and submit insurance claims with AI-powered evidence.
+                Reviews, SOAP notes, insurance workflows, and claims run in the separate{' '}
+                <strong>VoiceCanvas Clinic</strong> (doctor) application — not in this patient app.
               </p>
-              <button
-                className="btn btn-lg btn-outline"
-                onClick={() => navigate('/clinician')}
-                style={{ borderColor: 'rgba(255,255,255,0.2)', color: 'white' }}
-              >
-                Open Clinician Dashboard
-              </button>
             </div>
             <div className="cta-stats">
               <div className="cta-stat">

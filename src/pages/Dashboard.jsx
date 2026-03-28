@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useStorage } from '../hooks/useStorage';
 import { DRAWING_PROMPTS, WEEKLY_GOAL } from '../utils/drawingPrompts';
+import CareBoard from '../components/CareBoard';
 import './Dashboard.css';
 
 const MOOD_EMOJIS = [
@@ -56,9 +57,21 @@ function ProgressRing({ current, total, size = 120, strokeWidth = 10 }) {
   );
 }
 
+const MOOD_STORAGE_KEY = 'mc_last_mood';
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { profile, sessions, getWeekNumber, getWeekSessions, getAverageStress } = useStorage();
+  const [selectedMood, setSelectedMood] = useState(null);
+
+  useEffect(() => {
+    try {
+      const last = sessionStorage.getItem(MOOD_STORAGE_KEY);
+      if (last) setSelectedMood(last);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const weekNum = getWeekNumber();
   const weekSessions = getWeekSessions();
@@ -88,11 +101,6 @@ export default function Dashboard() {
               <span className="brand-icon">🧠</span>
               <span className="brand-text">MindCanvas</span>
             </div>
-            <div className="dash-nav">
-              <button className="btn btn-sm btn-ghost" onClick={() => navigate('/clinician')}>Clinician</button>
-              <button className="btn btn-sm btn-ghost" onClick={() => navigate('/insurance', { state: { fromDashboard: true } })}>Insurance</button>
-              <button className="btn btn-sm btn-ghost" onClick={() => navigate('/resources')}>Resources</button>
-            </div>
           </div>
         </div>
       </header>
@@ -108,13 +116,26 @@ export default function Dashboard() {
                 {MOOD_EMOJIS.map((m, i) => (
                   <motion.button
                     key={m.label}
-                    className="mood-btn"
-                    title={m.label}
+                    type="button"
+                    className={`mood-btn${selectedMood === m.label ? ' mood-btn-selected' : ''}`}
+                    title={`${m.label} — start drawing`}
+                    aria-pressed={selectedMood === m.label}
                     whileHover={{ scale: 1.15, y: -3 }}
                     whileTap={{ scale: 0.92 }}
                     initial={{ opacity: 0, scale: 0.5 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.2 + i * 0.06, type: 'spring' }}
+                    onClick={() => {
+                      setSelectedMood(m.label);
+                      try {
+                        sessionStorage.setItem(MOOD_STORAGE_KEY, m.label);
+                      } catch {
+                        /* ignore */
+                      }
+                      navigate('/draw', {
+                        state: { promptId: 'energy', preSessionMood: m.label },
+                      });
+                    }}
                   >
                     <span className="mood-face">{m.emoji}</span>
                     <span className="mood-name">{m.label}</span>
@@ -194,6 +215,11 @@ export default function Dashboard() {
                 );
               })}
             </div>
+          </motion.section>
+
+          {/* Care Board */}
+          <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+            <CareBoard />
           </motion.section>
 
           {/* Recent sessions */}

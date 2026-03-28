@@ -47,6 +47,16 @@
 
 .mood-btn:hover { border-color: var(--teal-400); box-shadow: var(--shadow-md); }
 
+.mood-btn-selected {
+  border-color: var(--teal-500);
+  box-shadow: 0 0 0 2px var(--teal-200), var(--shadow-md);
+}
+
+.mood-btn:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+}
+
 .mood-face { font-size: 2rem; line-height: 1; }
 .mood-name { font-size: 0.68rem; color: var(--gray-500); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 
@@ -143,6 +153,11 @@
 }
 
 .prompt-card:hover .pc-arrow { background: var(--pc-accent); color: white; transform: translateX(3px); }
+
+/* Care Board section spacing */
+.dash-body .container > section {
+  /* ensures motion.section wrappers maintain spacing */
+}
 
 /* Recent */
 .dash-recent { margin-bottom: var(--space-2xl); }

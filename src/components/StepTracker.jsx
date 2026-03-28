@@ -5,8 +5,6 @@ import './StepTracker.css';
 const STEPS = [
   { id: 'canvas', label: 'Expression', icon: '🎨' },
   { id: 'results', label: 'Analysis', icon: '🧠' },
-  { id: 'insurance', label: 'Insurance', icon: '📋' },
-  { id: 'final', label: 'Submit', icon: '✅' },
 ];
 
 export default function StepTracker({ currentStep = 'canvas' }) {

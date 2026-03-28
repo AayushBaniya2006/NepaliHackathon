@@ -1,13 +1,11 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import Landing from './pages/Landing';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import DrawingSession from './pages/DrawingSession';
 import SessionResults from './pages/SessionResults';
-import ClinicianDashboard from './pages/ClinicianDashboard';
-import InsuranceForm from './pages/InsuranceForm';
-import ResourceFinder from './pages/ResourceFinder';
+import CareNote from './pages/CareNote';
 import './index.css';
 
 function AnimatedRoutes() {
@@ -28,9 +26,12 @@ function AnimatedRoutes() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/draw" element={<DrawingSession />} />
           <Route path="/session-results" element={<SessionResults />} />
-          <Route path="/clinician" element={<ClinicianDashboard />} />
-          <Route path="/insurance" element={<InsuranceForm />} />
-          <Route path="/resources" element={<ResourceFinder />} />
+          {/* Public shareable Care Board sender — no auth required */}
+          <Route path="/care/:patientId" element={<CareNote />} />
+          {/* Clinician / insurance / resources live in doctor-saas only — keep old URLs from bookmarking */}
+          <Route path="/clinician" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/insurance" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/resources" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </motion.div>
     </AnimatePresence>

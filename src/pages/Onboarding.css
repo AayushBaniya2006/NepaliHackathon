@@ -369,6 +369,13 @@
   font-style: italic;
 }
 
+.calibration-skip {
+  margin-top: 1.25rem;
+  width: 100%;
+  max-width: 320px;
+  align-self: center;
+}
+
 .calibration-complete {
   color: var(--teal-500, #14b8a6);
   font-weight: 600;

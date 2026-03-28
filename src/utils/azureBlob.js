@@ -39,21 +39,101 @@ async function putBlob(absoluteUrl, body, contentType) {
   }
 }
 
+async function getBlobJson(account, container, blobPath, sas) {
+  const url = buildBlobUrl(account, container, blobPath, sas);
+  const res = await fetch(url);
+  if (res.status === 404) return null;
+  if (!res.ok) return null;
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+/** Prepends session to rolling list (max 100) for clinic session picker. */
+async function mergeSessionsManifest(cfg, patientId, sessionEntry) {
+  const path = `${patientId}/sessions-manifest.json`;
+  const { account, container, sas } = cfg;
+  let prev = await getBlobJson(account, container, path, sas);
+  const sessions = Array.isArray(prev?.sessions) ? prev.sessions : [];
+  const filtered = sessions.filter((s) => String(s.sessionId) !== String(sessionEntry.sessionId));
+  const next = [sessionEntry, ...filtered].slice(0, 100);
+  const doc = {
+    patientId,
+    sessions: next,
+    updatedAt: new Date().toISOString(),
+  };
+  const url = buildBlobUrl(account, container, path, sas);
+  await putBlob(url, new Blob([JSON.stringify(doc)], { type: 'application/json' }), 'application/json');
+}
+
+/**
+ * @param {Blob | null} videoBlob - Webcam recording
+ * @param {Blob | null} [canvasBlob] - PNG from canvas.toBlob() (preferred; avoids fetch(dataURL) failures on large canvases)
+ * @param {string} [canvasDataUrl] - Fallback if canvasBlob not provided
+ */
 export async function uploadSessionReplayToAzure({
   patientId,
   sessionId,
   videoBlob,
+  canvasBlob,
+  canvasDataUrl,
   meta,
 }) {
   const cfg = getAzureBlobConfig();
-  if (!cfg || !videoBlob || videoBlob.size === 0) return { ok: false, reason: 'no_config_or_blob' };
+  if (!cfg) return { ok: false, reason: 'no_config' };
+
+  const hasVideo = videoBlob && videoBlob.size > 0;
+
+  let pngBlob = null;
+  if (canvasBlob instanceof Blob && canvasBlob.size > 0) {
+    pngBlob = canvasBlob;
+  } else if (typeof canvasDataUrl === 'string' && canvasDataUrl.startsWith('data:')) {
+    try {
+      pngBlob = await fetch(canvasDataUrl).then((r) => r.blob());
+    } catch (e) {
+      console.warn('Azure: could not convert canvas data URL to blob', e);
+    }
+  }
+  const hasDrawing = pngBlob && pngBlob.size > 0;
+
+  if (!hasVideo && !hasDrawing) return { ok: false, reason: 'nothing_to_upload' };
 
   const { account, container, sas } = cfg;
   const basePath = `${patientId}/${sessionId}`;
-  const videoPath = `${basePath}/replay.webm`;
-  const videoUrl = buildBlobUrl(account, container, videoPath, sas);
 
-  await putBlob(videoUrl, videoBlob, videoBlob.type || 'video/webm');
+  let videoPath = null;
+  if (hasVideo) {
+    try {
+      const vp = `${basePath}/replay.webm`;
+      await putBlob(
+        buildBlobUrl(account, container, vp, sas),
+        videoBlob,
+        videoBlob.type || 'video/webm'
+      );
+      videoPath = vp;
+    } catch (e) {
+      console.warn('Azure: video upload failed', e);
+    }
+  }
+
+  let drawingPath = null;
+  if (hasDrawing) {
+    try {
+      const dp = `${basePath}/drawing.png`;
+      await putBlob(
+        buildBlobUrl(account, container, dp, sas),
+        pngBlob,
+        pngBlob.type || 'image/png'
+      );
+      drawingPath = dp;
+    } catch (e) {
+      console.warn('Azure: drawing PNG upload failed', e);
+    }
+  }
+
+  if (!videoPath && !drawingPath) return { ok: false, reason: 'all_uploads_failed' };
 
   const latest = {
     patientId,
@@ -64,6 +144,7 @@ export async function uploadSessionReplayToAzure({
     stressScore: meta?.stressScore ?? null,
     patientName: meta?.patientName ?? null,
     videoPath,
+    drawingPath,
     source: 'voicecanvas',
   };
 
@@ -72,5 +153,17 @@ export async function uploadSessionReplayToAzure({
   const jsonBody = new Blob([JSON.stringify(latest, null, 0)], { type: 'application/json' });
   await putBlob(latestUrl, jsonBody, 'application/json');
 
-  return { ok: true, videoPath };
+  const sessionEntry = {
+    sessionId,
+    videoPath,
+    drawingPath,
+    promptTitle: meta?.promptTitle ?? '',
+    promptId: meta?.promptId ?? '',
+    sessionDate: latest.sessionDate,
+    stressScore: meta?.stressScore ?? null,
+    patientName: meta?.patientName ?? null,
+  };
+  await mergeSessionsManifest(cfg, patientId, sessionEntry);
+
+  return { ok: true, videoPath, drawingPath };
 }

@@ -101,11 +101,14 @@ export default function Onboarding() {
   }, []);
 
   // Gesture detection callback for calibration
+  // useMediaPipe emits fist_hold before fist (hold-to-confirm); treat fist_hold as fist here.
   const handleCalibrationGesture = useCallback((detectedGesture) => {
     setCurrentGesture(detectedGesture);
     if (calibrationIndex >= CALIBRATION_GESTURES.length) return;
     const expected = CALIBRATION_GESTURES[calibrationIndex]?.id;
-    if (detectedGesture === expected) {
+    const normalized =
+      detectedGesture === 'fist_hold' ? 'fist' : detectedGesture;
+    if (normalized === expected) {
       setCalibrated(prev => ({ ...prev, [expected]: true }));
       setCalibrationTimeout(false);
       if (calibrationTimerRef.current) {
@@ -119,7 +122,7 @@ export default function Onboarding() {
     }
   }, [calibrationIndex]);
 
-  const { isLoaded: mpLoaded, startTracking, stopTracking } = useMediaPipe(videoRef, handleCalibrationGesture);
+  const { isLoaded: mpLoaded, error: mpError, startTracking, stopTracking } = useMediaPipe(videoRef, handleCalibrationGesture);
 
   // Start/stop tracking for calibration step
   useEffect(() => {
@@ -146,10 +149,28 @@ export default function Onboarding() {
     };
   }, [step, calibrationIndex, calibrated]);
 
+  const skipCalibration = useCallback(() => {
+    const all = {};
+    CALIBRATION_GESTURES.forEach((g) => { all[g.id] = true; });
+    setCalibrated(all);
+    setCalibrationIndex(CALIBRATION_GESTURES.length);
+    setCalibrationTimeout(false);
+    if (calibrationTimerRef.current) {
+      clearTimeout(calibrationTimerRef.current);
+      calibrationTimerRef.current = null;
+    }
+  }, []);
+
   const canProceed = () => {
     if (step === 1) return consent.disclaimer === true;
     if (step === 2) return cameraReady || cameraError;
-    if (step === 3) return calibrationIndex >= CALIBRATION_GESTURES.length || cameraError;
+    if (step === 3) {
+      return (
+        calibrationIndex >= CALIBRATION_GESTURES.length
+        || cameraError
+        || Boolean(mpError)
+      );
+    }
     return true;
   };
 
@@ -297,7 +318,12 @@ export default function Onboarding() {
                 <div className="calibration-container">
                   <div className="calibration-video-box">
                     <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', maxWidth: 360, borderRadius: 12, transform: 'scaleX(-1)' }} />
-                    {!mpLoaded && <p className="calibration-loading">Loading hand tracking...</p>}
+                    {!mpLoaded && !mpError && <p className="calibration-loading">Loading hand tracking...</p>}
+                    {mpError && (
+                      <p className="calibration-loading" style={{ color: 'var(--warning, #d97706)' }}>
+                        {mpError} Use Skip below to continue with mouse drawing.
+                      </p>
+                    )}
                   </div>
 
                   <div className="calibration-gestures">
@@ -322,6 +348,16 @@ export default function Onboarding() {
                       animate={{ opacity: 1, scale: 1 }}>
                       All gestures detected! You're ready to draw.
                     </motion.p>
+                  )}
+
+                  {calibrationIndex < CALIBRATION_GESTURES.length && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost calibration-skip"
+                      onClick={skipCalibration}
+                    >
+                      Skip calibration — I’ll use mouse drawing
+                    </button>
                   )}
                 </div>
               )}
