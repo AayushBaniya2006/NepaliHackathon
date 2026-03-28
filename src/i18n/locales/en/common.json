@@ -1,0 +1,32 @@
+{
+  "app": {
+    "name": "MindCanvas"
+  },
+  "nav": {
+    "howItWorks": "How It Works",
+    "platform": "Platform",
+    "resources": "Resources",
+    "getStarted": "Get Started",
+    "dashboard": "Dashboard",
+    "back": "Back"
+  },
+  "actions": {
+    "continue": "Continue",
+    "begin": "Begin",
+    "startDrawing": "Start Drawing",
+    "submit": "Submit",
+    "clear": "Clear",
+    "analyze": "Done — Analyze",
+    "learnMore": "Learn More",
+    "downloadPDF": "Download Clinical PDF"
+  },
+  "status": {
+    "loading": "Loading...",
+    "processing": "Processing...",
+    "analyzing": "Analyzing...",
+    "detecting": "Detecting...",
+    "generating": "Generating...",
+    "live": "Live"
+  },
+  "disclaimer": "Demo only — Not a medical device. Not HIPAA compliant. Built for hackathon demonstration."
+}

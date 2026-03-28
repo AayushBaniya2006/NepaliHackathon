@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import GlobalNav from './components/GlobalNav';
 import Landing from './pages/Landing';
 import Onboarding from './pages/Onboarding';
@@ -14,6 +16,12 @@ import './index.css';
 
 function AnimatedRoutes() {
   const location = useLocation();
+  const { i18n } = useTranslation();
+
+  useEffect(() => {
+    document.documentElement.dir = ['ar', 'ur'].includes(i18n.language) ? 'rtl' : 'ltr';
+    document.documentElement.lang = i18n.language;
+  }, [i18n.language]);
 
   return (
     <>

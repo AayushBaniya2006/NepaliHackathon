@@ -1,0 +1,102 @@
+{
+  "landing": {
+    "heroTitle": "Draw what you can't say.",
+    "heroTitle2": "Hear it back.",
+    "heroSubtitle": "No words. No keyboard. Just draw.",
+    "liveCounter": "{{count}} people drawing right now",
+    "metricsDocumentation": "Faster clinical documentation",
+    "metricsAppeal": "Insurance appeal win rate",
+    "metricsSession": "Session to SOAP note",
+    "forPatients": "For Patients & Caregivers",
+    "yourFeelings": "Your Feelings, Your Way",
+    "forPatientsDesc": "No words needed. Draw with hand gestures, sign in your language, and let AI translate your expression into the clinical evidence you deserve.",
+    "gestureDrawing": "Gesture Drawing",
+    "gestureDrawingDesc": "Point your finger at the webcam to draw. No mouse, no keyboard — just natural hand gestures.",
+    "aiInsight": "AI-Powered Insight",
+    "aiInsightDesc": "Every drawing is analyzed in real-time for stress patterns, emotional markers, and clinical indicators.",
+    "signMode": "Sign Language Mode",
+    "signModeDesc": "Switch to sign language recognition. Your signs become words, your words become clinical notes.",
+    "dividerCta": "10M+ nonverbal Americans are underdiagnosed. MindCanvas gives them a voice without words.",
+    "howItWorks": "How It Works",
+    "threeSteps": "Three Steps to Clinical Evidence",
+    "stepDraw": "Draw",
+    "stepDrawDesc": "Use hand gestures to draw on your webcam. No mouse, no keyboard — just point and move.",
+    "stepAnalyze": "AI Analyzes",
+    "stepAnalyzeDesc": "Real-time emotion detection, drawing pattern analysis, and clinical stress scoring — as you draw.",
+    "stepHelp": "Get Help",
+    "stepHelpDesc": "Instant SOAP notes, insurance pre-authorization, and clinical evidence — all from one session."
+  },
+  "onboarding": {
+    "welcome": "Welcome, Let's Get Started",
+    "consent": "Just a few things before we begin.",
+    "consentNonverbal": "I am nonverbal or have limited speech",
+    "consentNonverbalSub": "Helps us adapt the experience",
+    "consentData": "I agree to share anonymized data for research",
+    "consentDataSub": "Optional — helps improve the platform",
+    "consentDisclaimer": "I understand this is a screening tool, not a diagnosis",
+    "consentDisclaimerSub": "Required to proceed",
+    "profileTitle": "Almost there!",
+    "profileSub": "Tell us your name so we can personalize your experience.",
+    "nameLabel": "Your name",
+    "namePlaceholder": "Enter your name"
+  },
+  "dashboard": {
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "howFeeling": "How are you feeling today?",
+    "choosePrompt": "Choose a prompt to begin",
+    "sessionTime": "Each session takes about 2 minutes.",
+    "recentSessions": "Recent sessions",
+    "yourProgress": "Your progress",
+    "avgStress": "Avg. Stress",
+    "totalSessions": "Total Sessions"
+  },
+  "drawing": {
+    "sessionInProgress": "Session in Progress",
+    "loadingHands": "Loading hand tracking...",
+    "cameraNotAvailable": "Camera Not Available",
+    "drawWithMouse": "You can still draw with your mouse.",
+    "startingCamera": "Starting camera...",
+    "positionHands": "Position your hands here",
+    "capturingDrawing": "Capturing drawing...",
+    "analyzingPatterns": "Analyzing patterns...",
+    "generatingNote": "Generating clinical note...",
+    "doneAnalyze": "Done — Analyze",
+    "submitToAI": "Done? Submit to AI Analysis",
+    "hearInterpretation": "Hear interpretation"
+  },
+  "results": {
+    "yourExpression": "Your Expression — In Words",
+    "highStress": "High Stress",
+    "moderate": "Moderate",
+    "lowStress": "Low Stress",
+    "clinicalSOAP": "Clinical SOAP Note",
+    "backToDashboard": "Back to Dashboard"
+  },
+  "moods": {
+    "happy": "Happy",
+    "calm": "Calm",
+    "angry": "Angry",
+    "sad": "Sad",
+    "anxious": "Anxious",
+    "numb": "Numb"
+  },
+  "gestures": {
+    "showHand": "Show your hand",
+    "drawing": "Drawing",
+    "erasing": "Erasing",
+    "holdToSubmit": "Hold to submit...",
+    "holdToClear": "Hold to clear...",
+    "canvasCleared": "Canvas cleared",
+    "stampPlaced": "Stamp placed"
+  },
+  "crisis": {
+    "inCrisis": "In crisis? Get help now:",
+    "lifeline": "988 Suicide & Crisis Lifeline",
+    "textLine": "Text HOME to 741741",
+    "samhsa": "SAMHSA: 1-800-273-8255"
+  }
+}

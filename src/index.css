@@ -325,3 +325,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 ::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
 
 ::selection { background: rgba(232, 168, 124, 0.2); color: var(--text-primary); }
+
+/* ===== RTL Support ===== */
+[dir="rtl"] { direction: rtl; text-align: right; }
+[dir="rtl"] .btn { flex-direction: row-reverse; }
