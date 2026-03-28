@@ -33,6 +33,23 @@ const CALIBRATION_GESTURES = [
   { id: 'fist', label: 'Make a fist', icon: '✊', hint: 'Close your hand tightly' },
 ];
 
+const GESTURE_LABELS = {
+  none: '… move hand into view',
+  index_up: 'one finger (index)',
+  fingers_2: 'two fingers',
+  open_hand: 'open hand',
+  fist: 'fist',
+  pinch: 'pinch (thumb + index)',
+  fingers_3: 'three fingers',
+  fingers_4: 'four fingers',
+  other: 'adjust fingers',
+  speak: 'open hand (hold)',
+};
+
+function gestureLabel(gesture) {
+  return GESTURE_LABELS[gesture] || gesture || GESTURE_LABELS.none;
+}
+
 export default function Onboarding() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -59,25 +76,49 @@ export default function Onboarding() {
 
   const isCaregiver = role === 'caregiver';
 
-  // Camera init for steps 2-3
+  // Camera: acquire stream once, then attach to whichever step's <video> is mounted
   useEffect(() => {
     if (step < 2 || step > 3) return;
-    if (streamRef.current) return; // already have a stream
-    async function initCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-        });
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.onloadeddata = () => setCameraReady(true);
+    let cancelled = false;
+
+    async function ensureCamera() {
+      if (!streamRef.current) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+          });
+          if (cancelled) {
+            stream.getTracks().forEach((t) => t.stop());
+            return;
+          }
+          streamRef.current = stream;
+          setCameraError(null);
+        } catch {
+          setCameraError('Camera access denied. You can still use mouse drawing.');
+          return;
         }
-      } catch {
-        setCameraError('Camera access denied. You can still use mouse drawing.');
       }
+
+      const attachToVideo = () => {
+        const v = videoRef.current;
+        const s = streamRef.current;
+        if (!v || !s || cancelled) return;
+        if (v.srcObject !== s) {
+          setCameraReady(false);
+          v.srcObject = s;
+          v.onloadeddata = () => setCameraReady(true);
+        }
+        if (v.readyState >= 2) setCameraReady(true);
+      };
+
+      attachToVideo();
+      requestAnimationFrame(attachToVideo);
     }
-    initCamera();
+
+    ensureCamera();
+    return () => {
+      cancelled = true;
+    };
   }, [step]);
 
   // Stop camera when leaving step 3
@@ -119,7 +160,11 @@ export default function Onboarding() {
     }
   }, [calibrationIndex]);
 
-  const { isLoaded: mpLoaded, startTracking, stopTracking } = useMediaPipe(videoRef, handleCalibrationGesture);
+  const { isLoaded: mpLoaded, startTracking, stopTracking } = useMediaPipe(
+    videoRef,
+    handleCalibrationGesture,
+    { rawGestures: true }
+  );
 
   // Start/stop tracking for calibration step
   useEffect(() => {
@@ -286,6 +331,9 @@ export default function Onboarding() {
                 <span className="step-icon-large">🤚</span>
                 <h1>Gesture Calibration</h1>
                 <p>Let's make sure hand tracking works for you. Follow each gesture below.</p>
+                <p className="calibration-tip">
+                  Tip: point your index finger up and curl the rest (including thumb) so the camera clearly sees one finger.
+                </p>
               </div>
 
               {cameraError ? (
@@ -296,8 +344,20 @@ export default function Onboarding() {
               ) : (
                 <div className="calibration-container">
                   <div className="calibration-video-box">
-                    <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', maxWidth: 360, borderRadius: 12, transform: 'scaleX(-1)' }} />
-                    {!mpLoaded && <p className="calibration-loading">Loading hand tracking...</p>}
+                    <video
+                      ref={videoRef}
+                      className="calibration-video"
+                      autoPlay
+                      playsInline
+                      muted
+                    />
+                    {!cameraReady && <p className="calibration-loading">Starting camera preview...</p>}
+                    {cameraReady && !mpLoaded && <p className="calibration-loading">Loading hand tracking...</p>}
+                    {cameraReady && mpLoaded && (
+                      <p className="calibration-detected">
+                        Camera sees: <strong>{gestureLabel(currentGesture)}</strong>
+                      </p>
+                    )}
                   </div>
 
                   <div className="calibration-gestures">

@@ -4,7 +4,8 @@ import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 const FINGER_TIPS = [4, 8, 12, 16, 20];
 const FINGER_PIPS = [3, 6, 10, 14, 18];
 
-export function useMediaPipe(videoRef, onGestureChange) {
+export function useMediaPipe(videoRef, onGestureChange, options) {
+  const rawGestures = options && options.rawGestures === true;
   const handLandmarkerRef = useRef(null);
   const animFrameRef = useRef(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -14,20 +15,21 @@ export function useMediaPipe(videoRef, onGestureChange) {
   const fistTimer = useRef(null);
   const gestureCallback = useRef(onGestureChange);
   const gestureHoldCount = useRef(0);
+  const processFrameRef = useRef(() => {});
 
   useEffect(() => {
     gestureCallback.current = onGestureChange;
   }, [onGestureChange]);
 
   const initHandLandmarker = useCallback(async () => {
-    try {
+    const createWithDelegate = async (delegate) => {
       const vision = await FilesetResolver.forVisionTasks(
         'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
       );
-      handLandmarkerRef.current = await HandLandmarker.createFromOptions(vision, {
+      return HandLandmarker.createFromOptions(vision, {
         baseOptions: {
           modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
-          delegate: 'GPU',
+          delegate,
         },
         runningMode: 'VIDEO',
         numHands: 1,
@@ -35,10 +37,18 @@ export function useMediaPipe(videoRef, onGestureChange) {
         minHandPresenceConfidence: 0.5,
         minTrackingConfidence: 0.5,
       });
+    };
+    try {
+      handLandmarkerRef.current = await createWithDelegate('GPU');
       setIsLoaded(true);
-    } catch (err) {
-      console.error('MediaPipe init error:', err);
-      setError('Could not load hand tracking. Please try refreshing.');
+    } catch (errGpu) {
+      try {
+        handLandmarkerRef.current = await createWithDelegate('CPU');
+        setIsLoaded(true);
+      } catch (errCpu) {
+        console.error('MediaPipe init error:', errGpu, errCpu);
+        setError('Could not load hand tracking. Please try refreshing.');
+      }
     }
   }, []);
 
@@ -68,20 +78,31 @@ export function useMediaPipe(videoRef, onGestureChange) {
       Math.pow(thumbTip.x - indexTip.x, 2) + Math.pow(thumbTip.y - indexTip.y, 2)
     );
 
+    const indexExtended = hand[8].y < hand[6].y;
+    const middleDown = hand[12].y > hand[10].y;
+    const ringDown = hand[16].y > hand[14].y;
+    const pinkyDown = hand[20].y > hand[18].y;
+
     // Fist: 0 fingers up
     if (fingersUp === 0) return { gesture: 'fist', fingertip: null };
 
-    // 1 finger up: drawing mode (index finger)
-    if (fingersUp === 1 && hand[FINGER_TIPS[1]].y < hand[FINGER_PIPS[1]].y) {
-      const tip = hand[8];
-      return { gesture: 'index_up', fingertip: { x: tip.x, y: tip.y } };
-    }
-
-    // Pinch (thumb + index close together, only when 1-2 fingers otherwise up): eraser
+    // Pinch before index: avoids mis-reading a near-touch as one finger
     if (pinchDist < 0.06 && fingersUp <= 2) {
       const midX = (thumbTip.x + indexTip.x) / 2;
       const midY = (thumbTip.y + indexTip.y) / 2;
       return { gesture: 'pinch', fingertip: { x: midX, y: midY } };
+    }
+
+    // Index only: index extended, other fingers down (thumb may read as "up" — ignore thumb count)
+    if (indexExtended && middleDown && ringDown && pinkyDown) {
+      const tip = hand[8];
+      return { gesture: 'index_up', fingertip: { x: tip.x, y: tip.y } };
+    }
+
+    // 1 finger up by count: drawing mode (index finger)
+    if (fingersUp === 1 && hand[FINGER_TIPS[1]].y < hand[FINGER_PIPS[1]].y) {
+      const tip = hand[8];
+      return { gesture: 'index_up', fingertip: { x: tip.x, y: tip.y } };
     }
 
     // 2 fingers up (peace/V sign): stamp Person
@@ -116,50 +137,49 @@ export function useMediaPipe(videoRef, onGestureChange) {
     const landmarker = handLandmarkerRef.current;
 
     if (!video || !landmarker || video.readyState < 2) {
-      animFrameRef.current = requestAnimationFrame(processFrame);
+      animFrameRef.current = requestAnimationFrame(() => processFrameRef.current());
       return;
     }
 
     const result = landmarker.detectForVideo(video, performance.now());
     const { gesture, fingertip } = detectGesture(result.landmarks);
 
-    // Open hand hold (1.5s to submit)
-    if (gesture === 'open_hand') {
-      if (!openHandTimer.current) {
-        gestureCallback.current?.('open_hand', null);
-        openHandTimer.current = setTimeout(() => {
-          gestureCallback.current?.('speak', null);
-          openHandTimer.current = null;
-        }, 1500);
-      }
-    } else {
-      if (openHandTimer.current) {
+    if (!rawGestures) {
+      // Open hand hold (1.5s to submit)
+      if (gesture === 'open_hand') {
+        if (!openHandTimer.current) {
+          gestureCallback.current?.('open_hand', null);
+          openHandTimer.current = setTimeout(() => {
+            gestureCallback.current?.('speak', null);
+            openHandTimer.current = null;
+          }, 1500);
+        }
+      } else if (openHandTimer.current) {
         clearTimeout(openHandTimer.current);
         openHandTimer.current = null;
       }
-    }
 
-    // Fist hold (2s to clear)
-    if (gesture === 'fist') {
-      if (!fistTimer.current) {
-        gestureCallback.current?.('fist_hold', null);
-        fistTimer.current = setTimeout(() => {
-          gestureCallback.current?.('fist', null);
-          fistTimer.current = null;
-        }, 2000);
-      }
-    } else {
-      if (fistTimer.current) {
+      // Fist hold (2s to clear)
+      if (gesture === 'fist') {
+        if (!fistTimer.current) {
+          gestureCallback.current?.('fist_hold', null);
+          fistTimer.current = setTimeout(() => {
+            gestureCallback.current?.('fist', null);
+            fistTimer.current = null;
+          }, 2000);
+        }
+      } else if (fistTimer.current) {
         clearTimeout(fistTimer.current);
         fistTimer.current = null;
       }
     }
 
     // Fire callbacks
+    const deferOpenFist = !rawGestures && (gesture === 'open_hand' || gesture === 'fist');
     if (gesture !== lastGesture.current) {
       lastGesture.current = gesture;
       gestureHoldCount.current = 0;
-      if (gesture !== 'open_hand' && gesture !== 'fist') {
+      if (!deferOpenFist) {
         gestureCallback.current?.(gesture, fingertip);
       }
     } else if (gesture === 'index_up' || gesture === 'pinch') {
@@ -172,12 +192,16 @@ export function useMediaPipe(videoRef, onGestureChange) {
       }
     }
 
-    animFrameRef.current = requestAnimationFrame(processFrame);
-  }, [videoRef, detectGesture]);
+    animFrameRef.current = requestAnimationFrame(() => processFrameRef.current());
+  }, [videoRef, detectGesture, rawGestures]);
+
+  useEffect(() => {
+    processFrameRef.current = processFrame;
+  }, [processFrame]);
 
   const startTracking = useCallback(() => {
-    if (handLandmarkerRef.current) processFrame();
-  }, [processFrame]);
+    if (handLandmarkerRef.current) processFrameRef.current();
+  }, []);
 
   const stopTracking = useCallback(() => {
     if (animFrameRef.current) {
