@@ -1,11 +1,8 @@
 import { useState, useCallback } from 'react';
-import { SYSTEM_PROMPT, RESOURCE_FINDER_PROMPT, SIGN_LANGUAGE_PROMPT, SIGN_MESSAGE_PROMPT } from '../utils/claudePrompts';
-
-const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 
 /**
- * Hook for Claude API integration.
- * API key stored in env: VITE_CLAUDE_API_KEY
+ * Hook for Claude API integration via server proxy.
+ * All requests go through /api/analyze/* — no direct browser API calls.
  */
 export function useClaude() {
   const [loading, setLoading] = useState(false);
@@ -30,12 +27,8 @@ export function useClaude() {
     setLoading(true);
     setError(null);
 
-    const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
-
-    // Try server proxy first
-    let response;
     try {
-      response = await makeRequest('/api/analyze/drawing', {
+      const response = await makeRequest('/api/analyze/drawing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64: canvasDataUrl, promptId: assessmentType, promptLabel: assessmentType }),
@@ -46,65 +39,11 @@ export function useClaude() {
         setLoading(false);
         return result;
       }
-    } catch { /* proxy unavailable, try direct */ }
-
-    // Fallback: direct API call (only if proxy fails)
-    if (apiKey) {
-      try {
-        const base64 = canvasDataUrl.split(',')[1];
-
-        response = await makeRequest(CLAUDE_API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true',
-          },
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 1024,
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  {
-                    type: 'image',
-                    source: {
-                      type: 'base64',
-                      media_type: 'image/png',
-                      data: base64,
-                    },
-                  },
-                  {
-                    type: 'text',
-                    text: `Interpret this drawing from a non-verbal user.
-                    CONTEXT: This is a "${assessmentType}" clinical drawing assessment.
-                    Please analyze the visual metaphors and emotional state accordingly.`,
-                  },
-                ],
-              },
-            ],
-            system: SYSTEM_PROMPT,
-          }),
-        });
-
-        if (!response.ok) throw new Error(`Claude API error: ${response.status}`);
-
-        const data = await response.json();
-        const content = data.content[0].text;
-        const parsed = JSON.parse(content);
-        setResult(parsed);
-        setLoading(false);
-        return parsed;
-      } catch (err) {
-        console.error('Claude error, falling back to mock:', err);
-      }
-    } else {
-      console.warn('Claude API key not configured. Using high-fidelity mock data for demo transition.');
+    } catch {
+      /* proxy unavailable, fall through to mock */
     }
 
-    // Final fallback: mock data
+    // Fallback: mock data
     await new Promise(r => setTimeout(r, 2000));
     const mockResult = getMockDrawingResult(assessmentType);
     setResult(mockResult);
@@ -112,13 +51,7 @@ export function useClaude() {
     return mockResult;
   }, []);
 
-  /**
-   * Recognize a sign language gesture from a webcam frame
-   */
   const recognizeSign = useCallback(async (frameDataUrl) => {
-    const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
-
-    // Try server proxy first
     try {
       const response = await makeRequest('/api/analyze/sign', {
         method: 'POST',
@@ -128,72 +61,17 @@ export function useClaude() {
       if (response.ok) {
         return await response.json();
       }
-    } catch { /* proxy unavailable, try direct */ }
-
-    // Fallback: direct API call
-    if (!apiKey) {
-      return { recognized: false, sign: '', confidence: 'low', description: 'API key not configured' };
+    } catch {
+      /* proxy unavailable */
     }
 
-    try {
-      const base64 = frameDataUrl.split(',')[1];
-
-      const response = await makeRequest(CLAUDE_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 300,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'image',
-                  source: {
-                    type: 'base64',
-                    media_type: 'image/png',
-                    data: base64,
-                  },
-                },
-                {
-                  type: 'text',
-                  text: 'What ASL sign or gesture is this person making? Interpret it.',
-                },
-              ],
-            },
-          ],
-          system: SIGN_LANGUAGE_PROMPT,
-        }),
-      });
-
-      if (!response.ok) throw new Error(`Claude API error: ${response.status}`);
-
-      const data = await response.json();
-      const parsed = JSON.parse(data.content[0].text);
-      return parsed;
-    } catch (err) {
-      console.error('Sign recognition error:', err);
-      return { recognized: false, sign: '', confidence: 'low', description: 'Recognition failed' };
-    }
+    return { recognized: false, sign: '', confidence: 'low', description: 'Server unavailable' };
   }, []);
 
-  /**
-   * Take accumulated signed words and produce the full clinical pipeline output
-   */
   const interpretSignMessage = useCallback(async (signedWords) => {
     setLoading(true);
     setError(null);
 
-    const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
-    const message = signedWords.join(' ');
-
-    // Try server proxy first
     try {
       const response = await makeRequest('/api/analyze/sign-message', {
         method: 'POST',
@@ -206,96 +84,35 @@ export function useClaude() {
         setLoading(false);
         return parsed;
       }
-    } catch { /* proxy unavailable, try direct */ }
-
-    // Fallback: direct API call
-    if (!apiKey) {
-      setError('Claude API key not configured.');
-      setLoading(false);
-      return null;
+    } catch {
+      /* proxy unavailable */
     }
 
-    try {
-      const response = await makeRequest(CLAUDE_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1024,
-          messages: [
-            {
-              role: 'user',
-              content: `The user signed the following words/phrases: "${message}"\n\nInterpret this as their mental health communication and generate the clinical output.`,
-            },
-          ],
-          system: SIGN_MESSAGE_PROMPT,
-        }),
-      });
-
-      if (!response.ok) throw new Error(`Claude API error: ${response.status}`);
-
-      const data = await response.json();
-      const parsed = JSON.parse(data.content[0].text);
-      setResult(parsed);
-      setLoading(false);
-      return parsed;
-    } catch (err) {
-      console.error('Sign message interpretation error:', err);
-      setError('Failed to interpret signed message. Please try again.');
-      setLoading(false);
-      return null;
-    }
+    setError('Server unavailable. Please try again.');
+    setLoading(false);
+    return null;
   }, []);
 
   const findResources = useCallback(async (location) => {
     setLoading(true);
     setError(null);
 
-    const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
-    if (!apiKey) {
-      // Return mock data for demo
-      setLoading(false);
-      return getMockResources();
-    }
-
     try {
-      const response = await fetch(CLAUDE_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1500,
-          messages: [
-            {
-              role: 'user',
-              content: `Find free or low-cost mental health resources near ${location}. Include crisis resources.`,
-            },
-          ],
-          system: RESOURCE_FINDER_PROMPT,
-        }),
+      const response = await makeRequest('/api/resources', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
       });
-
-      if (!response.ok) throw new Error(`Claude API error: ${response.status}`);
-
-      const data = await response.json();
-      const parsed = JSON.parse(data.content[0].text);
-      setLoading(false);
-      return parsed;
-    } catch (err) {
-      console.error('Resource finder error:', err);
-      setLoading(false);
-      return getMockResources();
+      if (response.ok) {
+        const data = await response.json();
+        setLoading(false);
+        return data;
+      }
+    } catch {
+      /* proxy unavailable */
     }
+
+    setLoading(false);
+    return getMockResources();
   }, []);
 
   return { interpretDrawing, recognizeSign, interpretSignMessage, findResources, loading, error, result };

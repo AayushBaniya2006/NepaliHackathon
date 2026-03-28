@@ -1,49 +1,5 @@
 import { useState, useCallback } from 'react';
 
-const API_URL = 'https://api.anthropic.com/v1/messages';
-
-const ANALYSIS_SYSTEM_PROMPT = `You are a clinical art therapy AI assistant analyzing drawings from nonverbal or disabled patients for anxiety/depression markers. You must output ONLY valid JSON, no markdown, no code fences.
-
-Analyze the drawing for these clinical markers:
-- Color histogram: percentage of red, black, warm vs cool tones
-- Line pressure: heavy (distress) vs light (withdrawal)
-- Size and placement: tiny figures indicate low self-esteem, corner placement indicates isolation
-- Symbols: storms, darkness, isolation, barriers, somatic representations
-- Composition: chaos vs order, empty space vs crowding
-
-Output this exact JSON structure:
-{
-  "stress_score": <number 1-10>,
-  "indicators": {
-    "red_pct": <number 0-100>,
-    "black_pct": <number 0-100>,
-    "isolation": <number 0-5>,
-    "somatic": <boolean>,
-    "line_pressure": "heavy" | "medium" | "light",
-    "placement": "centered" | "corner" | "scattered" | "bottom",
-    "dominant_mood": "anxious" | "sad" | "angry" | "fearful" | "calm" | "mixed"
-  },
-  "pattern": "<1-2 sentence clinical pattern description>",
-  "threshold_met": <boolean, true if score >= 7>,
-  "feedback_emoji": "<single emoji representing the analysis>",
-  "feedback_short": "<10-word patient-friendly feedback like 'AI sees red stress and jagged worry'>",
-  "personal_statement": "<2-3 sentence warm first-person statement speaking AS the patient, helping them express what they might be feeling>",
-  "clinical_note": {
-    "subjective": "<what the patient appears to be experiencing>",
-    "objective": "<description of drawing: colors, patterns, symbols, intensity, spatial arrangement>",
-    "assessment": "<clinical interpretation using DSM-5 aligned language>",
-    "plan": "<recommended next steps: therapy modality, follow-up, safety>"
-  },
-  "diagnosis": "<suggested ICD-10 code and name>",
-  "insurance_data": {
-    "chief_complaint": "<brief chief complaint>",
-    "symptom_duration": "<estimated duration>",
-    "functional_impairment": "<description of impairment>",
-    "diagnosis_category": "<suggested diagnosis>",
-    "requested_service": "therapy" | "psychiatric eval" | "both"
-  }
-}`;
-
 function getMockAnalysis(promptId) {
   const mocksByPrompt = {
     energy: {
@@ -151,9 +107,7 @@ export function useAnalysis() {
     setLoading(true);
     setError(null);
 
-    const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
-
-    // Try server proxy first
+    // Try server proxy
     try {
       const response = await makeRequest('/api/analyze/drawing', {
         method: 'POST',
@@ -165,60 +119,15 @@ export function useAnalysis() {
         setLoading(false);
         return result;
       }
-    } catch { /* proxy unavailable, try direct */ }
-
-    // Fallback: direct API call
-    if (!apiKey) {
-      await new Promise(r => setTimeout(r, 2500));
-      const mock = getMockAnalysis(promptId);
-      setLoading(false);
-      return mock;
-    }
-
-    try {
-      const base64 = canvasDataUrl.split(',')[1];
-      const response = await makeRequest(API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1500,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'image',
-                  source: { type: 'base64', media_type: 'image/png', data: base64 },
-                },
-                {
-                  type: 'text',
-                  text: `Analyze this nonverbal patient's "${promptLabel}" drawing for anxiety/depression markers. Score stress 1-10. Compare visual metaphors and emotional cues. This is a clinical screening drawing — treat it as clinical evidence.`,
-                },
-              ],
-            },
-          ],
-          system: ANALYSIS_SYSTEM_PROMPT,
-        }),
-      });
-
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
-
-      const data = await response.json();
-      const parsed = JSON.parse(data.content[0].text);
-      setLoading(false);
-      return parsed;
     } catch (err) {
-      console.error('Analysis error, using mock:', err);
-      const mock = getMockAnalysis(promptId);
-      setLoading(false);
-      return mock;
+      console.error('Proxy unavailable, using mock:', err);
     }
+
+    // Fallback: mock data
+    await new Promise(r => setTimeout(r, 2500));
+    const mock = getMockAnalysis(promptId);
+    setLoading(false);
+    return mock;
   }, []);
 
   return { analyzeDrawing, loading, error };

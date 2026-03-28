@@ -497,35 +497,9 @@
   overflow-x: auto;
   max-height: 400px;
   overflow-y: auto;
-  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-family: var(--font-mono);
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--gray-800);
-}
-
-/* Score pills */
-.score-pill {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 0.78rem;
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
-  white-space: nowrap;
-  letter-spacing: -0.01em;
-}
-
-.score-high {
-  background: var(--rose-100);
-  color: var(--rose-600);
-}
-
-.score-mid {
-  background: var(--coral-100);
-  color: var(--coral-600);
-}
-
-.score-low {
-  background: var(--teal-100);
-  color: var(--teal-700);
 }
 
 /* Responsive */

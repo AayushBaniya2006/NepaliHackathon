@@ -2,23 +2,25 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './GlobalNav.css';
 
+const HIDDEN_PATHS = ['/', '/onboarding', '/draw'];
+
 export default function GlobalNav() {
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Hide on onboarding and draw routes
-  if (location.pathname === '/' || location.pathname === '/onboarding' || location.pathname === '/draw') {
-    return null;
-  }
+  const hidden = HIDDEN_PATHS.includes(location.pathname);
 
   useEffect(() => {
+    if (hidden) return;
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [hidden]);
+
+  if (hidden) return null;
 
   return (
     <nav className={`global-nav${scrolled ? ' global-nav--scrolled' : ''}`}>

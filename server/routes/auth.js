@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
 import db from '../db.js';
-import { generateToken } from '../middleware/auth.js';
+import { generateToken, authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -27,8 +27,7 @@ router.post('/register', (req, res) => {
   }
 });
 
-router.get('/me', (req, res) => {
-  // This route uses authMiddleware applied in index.js
+router.get('/me', authMiddleware, (req, res) => {
   try {
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
     if (!user) return res.status(404).json({ error: 'User not found' });

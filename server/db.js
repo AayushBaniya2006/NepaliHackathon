@@ -62,4 +62,8 @@ db.exec(`
   );
 `);
 
+db.exec('CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)');
+db.exec('CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON sessions(created_at)');
+db.exec('CREATE INDEX IF NOT EXISTS idx_analytics_user_id ON analytics(user_id)');
+
 export default db;

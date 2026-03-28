@@ -36,7 +36,7 @@
   align-items: center;
   gap: 4px;
   padding: 12px 14px;
-  background: #FFFFFF;
+  background: var(--bg-white);
   border: 1px solid var(--border-light);
   border-radius: 16px;
   cursor: pointer;
@@ -142,7 +142,7 @@
   align-items: center;
   gap: 12px;
   padding: 10px 16px;
-  background: #FFFFFF;
+  background: var(--bg-white);
   border: 1px solid var(--border-light);
   border-radius: 14px;
 }
@@ -189,10 +189,6 @@
   padding: 4px 10px;
   border-radius: 100px;
 }
-
-.score-high { background: var(--error-light); color: var(--error); }
-.score-mid { background: var(--warning-light); color: #B8941A; }
-.score-low { background: var(--success-light); color: var(--success); }
 
 @media (max-width: 600px) {
   .app-prompts-grid {

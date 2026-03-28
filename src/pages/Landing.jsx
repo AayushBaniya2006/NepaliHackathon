@@ -7,55 +7,64 @@ import './Landing.css';
 
 /* ---------- Data ---------- */
 const METRICS = [
-  { value: 4.2, suffix: 'x', label: 'Faster clinical documentation' },
+  { value: 5, suffix: ' min', label: 'Average session length' },
   { value: 60, suffix: '%', label: 'Insurance appeal win rate' },
-  { value: 5, suffix: ' min', label: 'Session to SOAP note' },
+  { value: 3, suffix: 'x', label: 'Clinical documentation speed' },
+  { value: 0, suffix: ' words', label: 'Required from the patient' },
 ];
 
-const PATIENT_CARDS = [
+const STEPS = [
   {
-    icon: '☝️',
+    num: '01',
+    title: 'Draw',
+    body: "Point your index finger. Move it across the screen. That's all. No keyboard. No words. No instructions needed.",
+  },
+  {
+    num: '02',
+    title: 'Analyzed',
+    body: 'AI reads your drawing and your facial expressions simultaneously. Emotion surfaces without a single sentence.',
+  },
+  {
+    num: '03',
+    title: 'Heard',
+    body: 'A voice speaks the interpretation back to you in your language. Your clinician receives the clinical picture.',
+  },
+];
+
+const PLATFORM_ROWS = [
+  {
+    tag: 'EXPRESSION',
     title: 'Gesture Drawing',
-    desc: 'Point your finger at the webcam to draw. No mouse, no keyboard — just natural hand gestures.',
+    body: 'Draw with your hand in front of the camera. Index finger draws. Pinch erases. Open hand submits. No hardware needed beyond a webcam.',
+    right: { type: 'stat', text: '9 gestures. Zero barriers.' },
   },
   {
-    icon: '🧠',
-    title: 'AI-Powered Insight',
-    desc: 'Every drawing is analyzed in real-time for stress patterns, emotional markers, and clinical indicators.',
+    tag: 'UNDERSTANDING',
+    title: 'AI Voice Interpretation',
+    body: 'When you finish drawing, AI speaks back to you in your language. Nepali. Hindi. Arabic. Korean. 15 languages. Your words, finally.',
+    right: { type: 'pills', langs: ['\u0928\u0947\u092A\u093E\u0932\u0940', '\u0939\u093F\u0928\u094D\u0926\u0940', '\uD55C\uAD6D\uC5B4', '\u0627\u0644\u0639\u0631\u0628\u064A\u0629', '\u0E44\u0E17\u0E22', 'Espa\u00F1ol'] },
   },
   {
-    icon: '🗣️',
-    title: 'Sign Language Mode',
-    desc: 'Switch to sign language recognition. Your signs become words, your words become clinical notes.',
+    tag: 'PROGRESS',
+    title: 'Pattern Tracking',
+    body: "Every session builds a picture over time. Your clinician sees what you've been carrying \u2014 without you having to explain it twice.",
+    right: { type: 'stat', text: 'Sessions build. Patterns surface.' },
   },
 ];
 
-const CLINICIAN_CARDS = [
-  {
-    icon: '📋',
-    title: 'SOAP Note Generation',
-    desc: 'AI auto-generates structured clinical notes from every patient session — Subjective, Objective, Assessment, Plan.',
-  },
-  {
-    icon: '🏥',
-    title: 'FHIR-Compliant Export',
-    desc: 'One-click export to any EHR system. Standards-compliant Observation resources ready for integration.',
-  },
-  {
-    icon: '⚖️',
-    title: 'Reclaimant Engine',
-    desc: '15 years of legal precedents. Auto-generate appeal letters for denied claims. 60% win rate.',
-  },
+const HUMAN_STATS = [
+  { value: '1 in 5', desc: 'adults experience mental illness. Most never get help.' },
+  { value: '47%', desc: 'of immigrants report language as a barrier to mental healthcare.' },
+  { value: '0', desc: 'words required from a MindCanvas user.' },
 ];
 
 const NAV_LINKS = [
   { label: 'How It Works', target: 'how-it-works' },
   { label: 'Platform', target: 'platform' },
-  { label: 'For Clinicians', target: 'clinicians' },
 ];
 
 /* ---------- Animated Counter ---------- */
-function AnimatedCounter({ value, suffix, duration = 1500 }) {
+function AnimatedCounter({ value, suffix, duration = 1200 }) {
   const [count, setCount] = useState(0);
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: '-100px' });
@@ -92,13 +101,19 @@ function scrollTo(id) {
 
 /* ---------- Animation Variants ---------- */
 const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
 };
 
 const stagger = {
   visible: {
-    transition: { staggerChildren: 0.1 },
+    transition: { staggerChildren: 0.08 },
+  },
+};
+
+const metricsStagger = {
+  visible: {
+    transition: { staggerChildren: 0.15 },
   },
 };
 
@@ -244,349 +259,290 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ===== METRICS BAND ===== */}
-      <section className="ld-metrics" id="how-it-works">
+      {/* ===== METRICS BAND (dark) ===== */}
+      <section className="ld-metrics-band" id="how-it-works">
         <motion.div
-          className="ld-metrics-inner"
-          variants={stagger}
+          className="ld-metrics-band-inner"
+          variants={metricsStagger}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-80px' }}
         >
           {METRICS.map((m, i) => (
             <motion.div
-              className="ld-metric"
+              className="ld-metrics-band-item"
               key={i}
+              variants={fadeUp}
+              transition={{ duration: 0.4 }}
+            >
+              <div className="ld-metrics-band-value">
+                <AnimatedCounter value={m.value} suffix={m.suffix} />
+              </div>
+              <div className="ld-metrics-band-label">{m.label}</div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </section>
+
+      {/* ===== HOW IT WORKS / THE PROCESS (light) ===== */}
+      <section className="ld-process-section" id="how-it-works-steps">
+        <div className="ld-container">
+          <motion.div
+            className="ld-process-layout"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={stagger}
+          >
+            {/* Left: Steps */}
+            <div className="ld-process-left">
+              <motion.p className="ld-section-label" variants={fadeUp} transition={{ duration: 0.4 }}>
+                THE PROCESS
+              </motion.p>
+              <motion.h2 className="ld-process-headline" variants={fadeUp} transition={{ duration: 0.5 }}>
+                <span>One drawing.</span>
+                <span>A complete clinical picture.</span>
+              </motion.h2>
+
+              <div className="ld-process-steps">
+                {STEPS.map((step, i) => (
+                  <motion.div
+                    className="ld-process-step"
+                    key={step.num}
+                    variants={fadeUp}
+                    transition={{ duration: 0.4 }}
+                  >
+                    <div className="ld-process-step-number">{step.num}</div>
+                    <div className="ld-process-step-connector">
+                      {i < STEPS.length - 1 && <span className="ld-process-step-line" />}
+                    </div>
+                    <div className="ld-process-step-content">
+                      <h3>{step.title}</h3>
+                      <p>{step.body}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Product screenshot placeholder */}
+            <motion.div
+              className="ld-process-visual"
               variants={fadeUp}
               transition={{ duration: 0.6 }}
             >
-              <div className="ld-metric-value">
-                <AnimatedCounter value={m.value} suffix={m.suffix} />
+              <p className="ld-process-shot-label">LIVE SESSION</p>
+              <div className="ld-process-shot-frame">
+                <div className="ld-process-shot-header">
+                  <span>MINDCANVAS</span>
+                  <span>SESSION ACTIVE</span>
+                </div>
+                <div className="ld-process-shot-body">
+                  <div className="ld-process-shot-canvas">
+                    <div className="ld-process-shot-grid" />
+                    <div className="ld-process-shot-stroke ld-process-shot-stroke--one" />
+                    <div className="ld-process-shot-stroke ld-process-shot-stroke--two" />
+                    <div className="ld-process-shot-stroke ld-process-shot-stroke--three" />
+                    <div className="ld-process-shot-cursor" />
+                    <span className="ld-process-shot-cursor-label">Drawing</span>
+                  </div>
+                  <div className="ld-process-shot-sidebar">
+                    <span className="ld-process-shot-sidebar-label">DETECTED EMOTION</span>
+                    <div className="ld-process-shot-emotion-row">
+                      <span>Heaviness</span>
+                      <strong>78%</strong>
+                    </div>
+                    <div className="ld-process-shot-emotion-row">
+                      <span>Tension</span>
+                      <strong>62%</strong>
+                    </div>
+                    <div className="ld-process-shot-emotion-row">
+                      <span>Release</span>
+                      <strong>41%</strong>
+                    </div>
+                    <div className="ld-process-shot-wave">
+                      <span /><span /><span /><span /><span /><span />
+                    </div>
+                    <div className="ld-process-shot-voice">
+                      &ldquo;I see weight here. Something you&rsquo;ve been holding for a long time.&rdquo;
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="ld-metric-label">{m.label}</div>
             </motion.div>
-          ))}
-        </motion.div>
+          </motion.div>
+        </div>
       </section>
 
-      {/* ===== HOW IT WORKS ===== */}
-      <section className="ld-how-it-works" id="how-it-works-steps">
+      {/* ===== PLATFORM SPOTLIGHT (dark) ===== */}
+      <section className="ld-platform-section" id="platform">
         <div className="ld-container">
           <motion.div
-            className="ld-platform-header"
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-80px' }}
             variants={stagger}
           >
-            <motion.p className="ld-category" variants={fadeUp} transition={{ duration: 0.5 }}>
-              How It Works
+            <motion.p className="ld-section-label" variants={fadeUp} transition={{ duration: 0.4 }}>
+              THE PLATFORM
             </motion.p>
-            <motion.h2 className="ld-headline" variants={fadeUp} transition={{ duration: 0.6 }}>
-              Three Steps to Clinical Evidence
+            <motion.h2 className="ld-platform-headline" variants={fadeUp} transition={{ duration: 0.5 }}>
+              Draw what you&rsquo;ve never been able to say.
             </motion.h2>
+            <motion.p className="ld-platform-subheadline" variants={fadeUp} transition={{ duration: 0.5 }}>
+              MindCanvas is for people who fall through the cracks of traditional therapy.
+              People who don&rsquo;t have the words, the language, or the access.
+            </motion.p>
           </motion.div>
 
           <motion.div
-            className="ld-steps-grid"
-            variants={stagger}
+            className="ld-platform-rows"
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-60px' }}
-          >
-            {/* Step 1 */}
-            <motion.div className="ld-step-card" variants={fadeUp} transition={{ duration: 0.5 }}>
-              <div className="ld-step-num">1</div>
-              <div className="ld-step-icon">☝️</div>
-              <h3 className="ld-step-title">Draw</h3>
-              <p className="ld-step-desc">
-                Use hand gestures to draw on your webcam. No mouse, no keyboard — just point and move.
-              </p>
-              <div className="ld-step-live">
-                <span className="ld-live-dot" />
-                <span>847 people drawing right now</span>
-              </div>
-            </motion.div>
-
-            {/* Step 2 */}
-            <motion.div className="ld-step-card" variants={fadeUp} transition={{ duration: 0.5 }}>
-              <div className="ld-step-num">2</div>
-              <div className="ld-step-icon">🔬</div>
-              <h3 className="ld-step-title">AI Analyzes</h3>
-              <p className="ld-step-desc">
-                Real-time emotion detection, drawing pattern analysis, and clinical stress scoring — as you draw.
-              </p>
-              <div className="ld-step-live">
-                <span className="ld-live-dot" />
-                <span>Last detected: Heaviness · 2 min ago</span>
-              </div>
-            </motion.div>
-
-            {/* Step 3 */}
-            <motion.div className="ld-step-card" variants={fadeUp} transition={{ duration: 0.5 }}>
-              <div className="ld-step-num">3</div>
-              <div className="ld-step-icon">📋</div>
-              <h3 className="ld-step-title">Get Help</h3>
-              <p className="ld-step-desc">
-                Instant SOAP notes, insurance pre-authorization, and clinical evidence — all from one session.
-              </p>
-              <div className="ld-step-live">
-                <span className="ld-live-dot" />
-                <span>12,403 SOAP notes generated</span>
-              </div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ============================================= */}
-      {/* ===== CHAPTER 1: FOR PATIENTS (CLIENT) ===== */}
-      {/* ============================================= */}
-      <section className="ld-platform" id="platform">
-        <motion.div
-          className="ld-platform-header"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-80px' }}
-          variants={stagger}
-        >
-          <motion.p className="ld-category" variants={fadeUp} transition={{ duration: 0.5 }}>
-            For Patients &amp; Caregivers
-          </motion.p>
-          <motion.h2 className="ld-headline" variants={fadeUp} transition={{ duration: 0.6 }}>
-            Your Feelings, Your Way
-          </motion.h2>
-          <motion.p className="ld-body" variants={fadeUp} transition={{ duration: 0.6 }} style={{ maxWidth: 560 }}>
-            No words needed. Draw with hand gestures, sign in your language, and let AI
-            translate your expression into the clinical evidence you deserve.
-          </motion.p>
-        </motion.div>
-
-        <motion.div
-          className="ld-cards-grid"
-          variants={stagger}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-60px' }}
-        >
-          {PATIENT_CARDS.map((card, i) => (
-            <motion.div
-              className="ld-card"
-              key={i}
-              variants={fadeUp}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="ld-card-icon">{card.icon}</div>
-              <h3 className="ld-card-title">{card.title}</h3>
-              <p className="ld-card-desc">{card.desc}</p>
-            </motion.div>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* ===== PATIENT CTA DIVIDER ===== */}
-      <section className="ld-divider-cta">
-        <motion.div
-          className="ld-divider-cta-inner"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7 }}
-        >
-          <p className="ld-divider-cta-text">
-            10M+ nonverbal Americans are underdiagnosed. MindCanvas gives them a voice without words.
-          </p>
-          <button
-            className="ld-btn ld-btn-primary"
-            onClick={() => navigate('/onboarding')}
-          >
-            Start Drawing
-          </button>
-        </motion.div>
-      </section>
-
-      {/* ================================================ */}
-      {/* ===== CHAPTER 2: FOR CLINICIANS (B2B) ========== */}
-      {/* ================================================ */}
-      <section className="ld-platform ld-platform--b2b" id="clinicians">
-        <motion.div
-          className="ld-platform-header"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-80px' }}
-          variants={stagger}
-        >
-          <motion.p className="ld-category" variants={fadeUp} transition={{ duration: 0.5 }}>
-            For Clinicians &amp; Practices
-          </motion.p>
-          <motion.h2 className="ld-headline" variants={fadeUp} transition={{ duration: 0.6 }}>
-            From Session to Insurance Payout
-          </motion.h2>
-          <motion.p className="ld-body" variants={fadeUp} transition={{ duration: 0.6 }} style={{ maxWidth: 580 }}>
-            Auto-generate clinical documentation, export to any EHR, and fight denied claims
-            with AI-powered legal appeals — all from one dashboard.
-          </motion.p>
-        </motion.div>
-
-        <motion.div
-          className="ld-cards-grid"
-          variants={stagger}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-60px' }}
-        >
-          {CLINICIAN_CARDS.map((card, i) => (
-            <motion.div
-              className="ld-card"
-              key={i}
-              variants={fadeUp}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="ld-card-icon">{card.icon}</div>
-              <h3 className="ld-card-title">{card.title}</h3>
-              <p className="ld-card-desc">{card.desc}</p>
-            </motion.div>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* ===== RECLAIMANT FEATURE ===== */}
-      <section className="ld-reclaimant" id="reclaimant">
-        <div className="ld-reclaimant-bg" />
-
-        <div className="ld-reclaimant-content">
-          <motion.div
-            className="ld-reclaimant-badge"
-            initial={{ opacity: 0, y: -10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-          >
-            <span className="ld-badge ld-badge--dark">
-              <span className="ld-badge-dot ld-badge-dot--accent" />
-              Reclaimant
-            </span>
-          </motion.div>
-
-          <motion.h2
-            className="ld-reclaimant-title"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1, duration: 0.7 }}
-          >
-            Auto-Appeal Denied Claims
-          </motion.h2>
-
-          <motion.p
-            className="ld-reclaimant-subtitle"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2, duration: 0.7 }}
-          >
-            Our AI scans denial notices, matches against 15 years of legal precedents,
-            and generates appeal letters citing Mental Health Parity Act violations.
-            Practices recover an average of $35k annually.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3, duration: 0.6 }}
-          >
-            <button
-              className="ld-btn ld-btn-secondary-inv"
-              onClick={() => navigate('/insurance')}
-            >
-              Learn More
-              <span style={{ fontSize: '0.85em' }}>&rsaquo;</span>
-            </button>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ===== CLINICIAN STATS CTA ===== */}
-      <section className="ld-clinician" id="clinician-cta">
-        <div className="ld-clinician-inner">
-          <motion.div
-            className="ld-clinician-text"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-80px' }}
             variants={stagger}
           >
-            <motion.p className="ld-category" variants={fadeUp} transition={{ duration: 0.5 }}>
-              Dashboard
-            </motion.p>
-            <motion.h2 className="ld-headline" variants={fadeUp} transition={{ duration: 0.6 }}>
-              Everything in One Place
-            </motion.h2>
-            <motion.p className="ld-body" variants={fadeUp} transition={{ duration: 0.6 }}>
-              Review patient sessions, track stress trends over time,
-              generate FHIR observations, and submit insurance claims — all
-              from a single clinician dashboard.
-            </motion.p>
-            <motion.div variants={fadeUp} transition={{ duration: 0.5 }}>
-              <button
-                className="ld-btn ld-btn-secondary"
-                onClick={() => navigate('/clinician')}
+            {PLATFORM_ROWS.map((row, i) => (
+              <motion.div
+                className="ld-platform-row"
+                key={i}
+                variants={fadeUp}
+                transition={{ duration: 0.4 }}
               >
-                Open Clinician Dashboard
-              </button>
-            </motion.div>
+                <div className="ld-platform-row-copy">
+                  <p className="ld-platform-row-label">{row.tag}</p>
+                  <h3>{row.title}</h3>
+                  <p>{row.body}</p>
+                </div>
+                <div className="ld-platform-row-detail">
+                  {row.right.type === 'stat' ? (
+                    <p className="ld-platform-callout">{row.right.text}</p>
+                  ) : (
+                    <div className="ld-platform-pill-wrap">
+                      {row.right.langs.map(lang => (
+                        <span className="ld-platform-pill" key={lang}>{lang}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            ))}
           </motion.div>
+        </div>
+      </section>
 
+      {/* ===== HUMAN STORY (light) ===== */}
+      <section className="ld-story-section">
+        <div className="ld-container">
           <motion.div
-            className="ld-clinician-stats"
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-80px' }}
             variants={stagger}
           >
-            <motion.div className="ld-stat-card" variants={fadeUp} transition={{ duration: 0.5 }}>
-              <div className="ld-stat-card-value">$35k</div>
-              <div className="ld-stat-card-label">Avg. annual recovery per practice</div>
+            <motion.p className="ld-section-label" variants={fadeUp} transition={{ duration: 0.4 }}>
+              WHY IT EXISTS
+            </motion.p>
+          </motion.div>
+
+          <motion.div
+            className="ld-story-layout"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-60px' }}
+            variants={stagger}
+          >
+            {/* Left: Pull-quote */}
+            <motion.div className="ld-story-left" variants={fadeUp} transition={{ duration: 0.5 }}>
+              <blockquote className="ld-story-quote">
+                <span>Raju is 14. He moved from Kathmandu to Ohio eighteen months ago.</span>
+                <span>He has not spoken to a therapist, because he cannot find the words in English for the heaviness he carries.</span>
+              </blockquote>
+              <p className="ld-story-body">
+                He doesn&rsquo;t need a vocabulary lesson. He needs a way to show what he feels.
+                MindCanvas lets him draw it, and hears it back to him in Nepali.
+              </p>
             </motion.div>
-            <motion.div className="ld-stat-card" variants={fadeUp} transition={{ duration: 0.5 }}>
-              <div className="ld-stat-card-value">FHIR</div>
-              <div className="ld-stat-card-label">Compliant clinical export</div>
-            </motion.div>
-            <motion.div className="ld-stat-card" variants={fadeUp} transition={{ duration: 0.5 }}>
-              <div className="ld-stat-card-value">60%</div>
-              <div className="ld-stat-card-label">Auto-appeal success rate</div>
+
+            {/* Right: Stats */}
+            <motion.div className="ld-story-stats" variants={fadeUp} transition={{ duration: 0.5 }}>
+              {HUMAN_STATS.map((stat, i) => (
+                <div className="ld-story-stat-row" key={i}>
+                  <div className="ld-story-stat-value">{stat.value}</div>
+                  <p className="ld-story-stat-body">{stat.desc}</p>
+                </div>
+              ))}
             </motion.div>
           </motion.div>
         </div>
       </section>
 
-      {/* ===== FOOTER ===== */}
-      <footer className="ld-footer">
-        <div className="ld-footer-inner">
-          <div className="ld-footer-brand">
-            <span className="ld-footer-logo">MindCanvas</span>
-            <p className="ld-footer-tagline">Draw what you can't say.</p>
-          </div>
+      {/* ===== FINAL CTA (dark) ===== */}
+      <section className="ld-final-cta">
+        <div className="ld-container">
+          <motion.div
+            className="ld-final-cta-inner"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={stagger}
+          >
+            <motion.h2
+              className="ld-final-cta-headline"
+              variants={fadeUp}
+              transition={{ duration: 0.6 }}
+            >
+              Begin.
+            </motion.h2>
+            <motion.p
+              className="ld-final-cta-subtext"
+              variants={fadeUp}
+              transition={{ duration: 0.5 }}
+            >
+              Your feelings deserve to be understood.
+            </motion.p>
+            <motion.button
+              className="ld-final-cta-button"
+              variants={fadeUp}
+              transition={{ duration: 0.4 }}
+              onClick={() => navigate('/onboarding')}
+            >
+              Start Drawing
+            </motion.button>
+            <motion.p
+              className="ld-final-cta-meta"
+              variants={fadeUp}
+              transition={{ duration: 0.4 }}
+            >
+              Available in 15 languages &middot; No signup required
+            </motion.p>
+          </motion.div>
+        </div>
+      </section>
 
-          <div className="ld-footer-crisis">
-            <p className="ld-footer-crisis-title">In crisis? Get help now:</p>
-            <div className="ld-footer-crisis-links">
-              <a href="tel:988" className="ld-footer-crisis-link">
-                📞 988 Suicide & Crisis Lifeline
-              </a>
-              <a href="sms:741741?body=HELLO" className="ld-footer-crisis-link">
-                💬 Text HOME to 741741
-              </a>
-              <a href="tel:18002738255" className="ld-footer-crisis-link">
-                📱 SAMHSA: 1-800-273-8255
-              </a>
+      {/* ===== FOOTER (ink) ===== */}
+      <footer className="ld-footer">
+        <div className="ld-container">
+          <div className="ld-footer-top">
+            <div className="ld-footer-column">
+              <span className="ld-footer-brand">MindCanvas</span>
+              <p className="ld-footer-tagline">Draw what you can&rsquo;t say.</p>
+            </div>
+
+            <div className="ld-footer-column ld-footer-links">
+              <button className="ld-footer-link" onClick={() => scrollTo('how-it-works')}>How It Works</button>
+              <button className="ld-footer-link" onClick={() => scrollTo('platform')}>Platform</button>
+              <button className="ld-footer-link" onClick={() => navigate('/onboarding')}>Get Started</button>
+            </div>
+
+            <div className="ld-footer-column ld-footer-domain">
+              <span>mindcanvas.app</span>
             </div>
           </div>
 
-          <div className="ld-footer-disclaimer">
-            <p>Demo only — Not a medical device. Not HIPAA compliant. Built for hackathon demonstration.</p>
-            <p>© 2026 MindCanvas. Nepal–US Hackathon.</p>
+          <div className="ld-footer-bottom">
+            <p>Demo only &mdash; Not a medical device. Not HIPAA compliant. Built for hackathon demonstration.</p>
+            <p>&copy; 2026 MindCanvas. Nepal&ndash;US Hackathon.</p>
           </div>
         </div>
       </footer>

@@ -16,7 +16,7 @@ router.get('/', (req, res) => {
       avgStress: Math.round(avgStress * 10) / 10,
       todaySessions,
       soapNotesGenerated: totalSessions,
-      languagesSupported: 15,
+      languagesSupported: 2,
     });
   } catch (err) {
     console.error('Metrics error:', err);

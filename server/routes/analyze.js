@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -31,7 +32,7 @@ Output ONLY valid JSON with this exact structure:
   "insurance_data": { "chief_complaint": "<string>", "symptom_duration": "<string>", "functional_impairment": "<string>", "diagnosis_category": "<string>", "requested_service": "<string>" }
 }`;
 
-router.post('/drawing', async (req, res) => {
+router.post('/drawing', authMiddleware, async (req, res) => {
   const apiKey = process.env.CLAUDE_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'CLAUDE_API_KEY not configured' });
 
@@ -82,7 +83,7 @@ router.post('/drawing', async (req, res) => {
   }
 });
 
-router.post('/sign', async (req, res) => {
+router.post('/sign', authMiddleware, async (req, res) => {
   const apiKey = process.env.CLAUDE_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'CLAUDE_API_KEY not configured' });
 
@@ -122,7 +123,7 @@ router.post('/sign', async (req, res) => {
   }
 });
 
-router.post('/sign-message', async (req, res) => {
+router.post('/sign-message', authMiddleware, async (req, res) => {
   const apiKey = process.env.CLAUDE_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'CLAUDE_API_KEY not configured' });
 

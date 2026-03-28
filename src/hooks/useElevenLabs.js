@@ -1,7 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
 
-const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
-
 const VOICES = [
   { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', description: 'Warm & gentle' },
   { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', description: 'Calm & clear' },
@@ -68,41 +66,8 @@ export function useElevenLabs() {
         setLoading(false);
         return;
       }
-    } catch { /* proxy unavailable, try direct */ }
-
-    // Fallback: direct ElevenLabs API
-    const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
-    if (!apiKey) {
-      setLoading(false);
-      browserSpeak(text, volume, isMuted);
-      return;
-    }
-
-    try {
-      const response = await makeRequest(`${ELEVENLABS_API_URL}/${selectedVoice.id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'xi-api-key': apiKey,
-        },
-        body: JSON.stringify({
-          text,
-          model_id: 'eleven_monolingual_v1',
-          voice_settings: {
-            stability: 0.75,
-            similarity_boost: 0.75,
-            style: 0.5,
-          },
-        }),
-      });
-
-      if (!response.ok) throw new Error(`ElevenLabs error: ${response.status}`);
-
-      const blob = await response.blob();
-      await playAudioBlob(blob);
-      setLoading(false);
     } catch (err) {
-      console.error('ElevenLabs error:', err);
+      console.error('Voice proxy unavailable:', err);
       setError('Voice playback failed. Using browser voice.');
       setLoading(false);
       browserSpeak(text, volume, isMuted);

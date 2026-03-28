@@ -31,6 +31,9 @@ app.use(express.json({ limit: '10mb' }));
 const generalLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
 app.use('/api', generalLimiter);
 
+// Health check
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+
 // Public routes
 app.use('/api/auth', authRoutes);
 app.use('/api/metrics', metricsRoutes);
@@ -46,7 +49,7 @@ app.use('/api/voice', apiLimiter, voiceRoutes);
 
 // Serve built frontend in production
 app.use(express.static(join(__dirname, '..', 'dist')));
-app.get('*', (req, res) => {
+app.get('{*path}', (req, res) => {
   res.sendFile(join(__dirname, '..', 'dist', 'index.html'));
 });
 

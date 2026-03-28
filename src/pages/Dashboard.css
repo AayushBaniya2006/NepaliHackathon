@@ -182,14 +182,6 @@
 .recent-info h4 { font-family: var(--font-display); font-size: 0.92rem; font-weight: 600; margin-bottom: 2px; }
 .recent-date { font-size: 0.78rem; color: var(--gray-400); }
 
-.score-pill {
-  font-family: var(--font-display); font-weight: 700; font-size: 0.82rem;
-  padding: 5px 14px; border-radius: var(--radius-full);
-}
-.score-high { background: var(--rose-100); color: var(--rose-600); }
-.score-mid { background: var(--coral-100); color: var(--coral-600); }
-.score-low { background: var(--teal-100); color: var(--teal-700); }
-
 /* Nudge */
 .dash-nudge {
   display: flex; align-items: flex-start; gap: var(--space-md);
