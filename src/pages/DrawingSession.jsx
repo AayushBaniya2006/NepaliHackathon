@@ -11,6 +11,11 @@ import { useAnalysis } from '../hooks/useAnalysis';
 import { useStorage } from '../hooks/useStorage';
 import { getPromptById, DRAWING_PROMPTS } from '../utils/drawingPrompts';
 import { STAMPS, getStampByGesture } from '../utils/stamps';
+import GestureConfidenceBar from '../components/GestureConfidenceBar';
+import LiveSparkline from '../components/LiveSparkline';
+import CanvasHeatmap from '../components/CanvasHeatmap';
+import WaveformAnimation from '../components/WaveformAnimation';
+import ProgressiveTextStream from '../components/ProgressiveTextStream';
 import './DrawingSession.css';
 
 const BRUSH_COLORS = [
@@ -59,6 +64,14 @@ export default function DrawingSession({ promptOverride }) {
     skippedMeals: null, meltdowns: 0, sleep: null,
   });
 
+  const [gestureConfidence, setGestureConfidence] = useState(0);
+  const [strokeSpeeds, setStrokeSpeeds] = useState([]);
+  const [coverageGrid, setCoverageGrid] = useState(new Array(80).fill(0));
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [voiceState, setVoiceState] = useState('idle'); // 'idle' | 'loading' | 'playing'
+  const [analyzeProgress, setAnalyzeProgress] = useState(0);
+  const [analyzeStage, setAnalyzeStage] = useState('');
+
   const stampCooldownRef = useRef(false);
 
   const { recognizeSign, interpretSignMessage, loading: claudeLoading } = useClaude();
@@ -81,8 +94,9 @@ export default function DrawingSession({ promptOverride }) {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleGesture = useCallback(async (detectedGesture, fingertip) => {
+  const handleGesture = useCallback(async (detectedGesture, fingertip, confidence) => {
     setGesture(detectedGesture);
+    if (confidence !== undefined) setGestureConfidence(confidence);
     if (mode !== 'draw') return;
 
     if (detectedGesture === 'index_up' && fingertip) {
@@ -111,11 +125,32 @@ export default function DrawingSession({ promptOverride }) {
   const handleAnalyze = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
+    setAnalyzeProgress(0);
+    setAnalyzeStage('Capturing drawing...');
+
     const dataUrl = canvasRef.current?.toDataURL();
     if (!dataUrl) { setIsProcessing(false); return; }
 
+    // Stage 1: Capture (0-30%)
+    setAnalyzeProgress(15);
+    await new Promise(r => setTimeout(r, 400));
+    setAnalyzeProgress(30);
+    setAnalyzeStage('Analyzing patterns...');
+
+    // Stage 2: Analysis (30-70%)
+    setAnalyzeProgress(45);
     const result = await analyzeDrawing(dataUrl, promptId, prompt.title);
+    setAnalyzeProgress(70);
+    setAnalyzeStage('Generating clinical note...');
+
+    // Stage 3: Generate (70-100%)
     if (result) {
+      setAnalysisResult(result);
+      setAnalyzeProgress(85);
+      await new Promise(r => setTimeout(r, 300));
+      setAnalyzeProgress(100);
+      await new Promise(r => setTimeout(r, 200));
+
       saveSession({
         promptId, imageUrl: dataUrl, stressScore: result.stress_score,
         feedbackShort: result.feedback_short, caregiverNote,
@@ -407,6 +442,7 @@ export default function DrawingSession({ promptOverride }) {
             {mode === 'draw' && gesture !== 'none' && (
               <div className="ds-cc-bar">
                 <GestureIndicator gesture={gesture} isProcessing={isProcessing} inline stampName={activeStampName} />
+                <GestureConfidenceBar confidence={gestureConfidence} />
               </div>
             )}
           </div>
@@ -532,6 +568,90 @@ export default function DrawingSession({ promptOverride }) {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* ===== LIVE ANALYSIS PANELS (new) ===== */}
+
+          {/* Emotion Feed */}
+          <div className="ds-side-card ds-emotion-card">
+            <div className="ds-sc-header">
+              <span>Emotion</span>
+              <span className="ds-live-badge">Live</span>
+            </div>
+            {analysisResult ? (
+              <div className="ds-emotion-result">
+                <span className="ds-emotion-emoji">{analysisResult.feedback_emoji || '🎭'}</span>
+                <span className="ds-emotion-label">{analysisResult.indicators?.dominant_mood || 'Processing'}</span>
+                <GestureConfidenceBar confidence={analysisResult.stress_score ? analysisResult.stress_score / 10 : 0} />
+              </div>
+            ) : (
+              <div className="ds-emotion-detecting">
+                <motion.span
+                  animate={{ opacity: [0.4, 1, 0.4] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  Detecting...
+                </motion.span>
+              </div>
+            )}
+          </div>
+
+          {/* Session Patterns */}
+          <div className="ds-side-card ds-patterns-card">
+            <div className="ds-sc-header">
+              <span>Session Patterns</span>
+            </div>
+            <div className="ds-pattern-row">
+              <span className="ds-pattern-label">Drawing Speed</span>
+              <LiveSparkline data={strokeSpeeds} />
+            </div>
+            <div className="ds-pattern-row">
+              <span className="ds-pattern-label">Coverage</span>
+              <CanvasHeatmap grid={coverageGrid} />
+            </div>
+          </div>
+
+          {/* Progressive SOAP */}
+          {analysisResult?.clinical_note && (
+            <motion.div className="ds-side-card ds-soap-card"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}>
+              <div className="ds-sc-header">
+                <span>Clinical Note</span>
+              </div>
+              {['S', 'O', 'A', 'P'].map((key, idx) => (
+                <div key={key} className="ds-soap-section">
+                  <span className="ds-soap-key">{key}</span>
+                  <ProgressiveTextStream
+                    text={analysisResult.clinical_note[key] || ''}
+                    speed={15}
+                    isActive={idx === 0}
+                  />
+                </div>
+              ))}
+            </motion.div>
+          )}
+
+          {/* Voice Output */}
+          <div className="ds-side-card ds-voice-card">
+            <div className="ds-sc-header">
+              <span>Voice</span>
+            </div>
+            <WaveformAnimation state={voiceState} />
+            <button
+              className="btn btn-sm btn-outline ds-voice-btn"
+              onClick={() => {
+                if (analysisResult?.personal_statement) {
+                  setVoiceState('loading');
+                  // Voice will be connected to useElevenLabs later
+                  setTimeout(() => setVoiceState('playing'), 1500);
+                  setTimeout(() => setVoiceState('idle'), 5000);
+                }
+              }}
+              disabled={!analysisResult}
+            >
+              Hear interpretation
+            </button>
+          </div>
         </div>
       </div>
 
@@ -540,10 +660,21 @@ export default function DrawingSession({ promptOverride }) {
         {isProcessing && (
           <motion.div className="ds-analyzing-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="ds-analyzing-content">
-              <motion.div className="ds-analyzing-spinner" animate={{ rotate: 360 }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }} />
-              <h2>{mode === 'draw' ? 'AI is analyzing your drawing...' : 'Interpreting your signs...'}</h2>
-              <p>{mode === 'draw' ? 'Evaluating color patterns, line pressure, symbols, and emotional markers.' : 'Converting sign sequences into clinical communications.'}</p>
+              <div className="ds-analyze-progress">
+                <div className="ds-analyze-bar-track">
+                  <motion.div
+                    className="ds-analyze-bar-fill"
+                    initial={{ width: '0%' }}
+                    animate={{ width: `${analyzeProgress}%` }}
+                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                  />
+                </div>
+                <span className="ds-analyze-pct">{analyzeProgress}%</span>
+              </div>
+              <h2>{analyzeStage || 'Analyzing...'}</h2>
+              <p>{mode === 'draw'
+                ? 'Evaluating color patterns, line pressure, symbols, and emotional markers.'
+                : 'Converting sign sequences into clinical communications.'}</p>
             </div>
           </motion.div>
         )}

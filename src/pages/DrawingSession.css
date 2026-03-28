@@ -362,7 +362,7 @@
 }
 
 .ds-submit-btn {
-  box-shadow: 0 4px 20px rgba(13,148,136,0.4);
+  box-shadow: 0 4px 20px rgba(232, 168, 124, 0.4);
 }
 
 /* CC bar — gesture status */
@@ -535,6 +535,135 @@
 
 .ds-analyzing-content h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: var(--space-sm); }
 .ds-analyzing-content p { color: rgba(255,255,255,0.55); font-size: 0.92rem; }
+
+/* ===== LIVE ANALYSIS SIDEBAR PANELS ===== */
+.ds-live-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--success);
+  background: var(--success-light);
+  padding: 2px 8px;
+  border-radius: 100px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ds-emotion-card {
+  text-align: center;
+}
+
+.ds-emotion-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.ds-emotion-emoji {
+  font-size: 2rem;
+}
+
+.ds-emotion-label {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-transform: capitalize;
+}
+
+.ds-emotion-detecting {
+  padding: 20px 0;
+  font-size: 0.9rem;
+  color: var(--stone);
+}
+
+.ds-patterns-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ds-pattern-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ds-pattern-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--stone);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ds-soap-card {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.ds-soap-section {
+  margin-bottom: 12px;
+}
+
+.ds-soap-section:last-child {
+  margin-bottom: 0;
+}
+
+.ds-soap-key {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--peach);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.ds-voice-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: var(--space-lg);
+}
+
+.ds-voice-btn {
+  width: 100%;
+}
+
+/* ===== PROGRESS BAR OVERLAY ===== */
+.ds-analyze-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 300px;
+  margin-bottom: var(--space-xl);
+}
+
+.ds-analyze-bar-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ds-analyze-bar-fill {
+  height: 100%;
+  background: var(--peach);
+  border-radius: 3px;
+}
+
+.ds-analyze-pct {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  min-width: 36px;
+  text-align: right;
+}
 
 /* ===== Responsive ===== */
 @media (max-width: 1024px) {
