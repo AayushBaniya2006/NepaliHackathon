@@ -234,7 +234,7 @@ export default function Landing() {
             </motion.div>
           </div>
 
-          <motion.div 
+          <motion.div
             className="ld-hero-illustration"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -271,11 +271,11 @@ export default function Landing() {
               <p>Stigma prevents early support in culturally conservative communities. Meanwhile, students & professionals face unprecedented, silent occupational burnout.<sup>3</sup></p>
             </div>
           </div>
-          
+
           <div className="citations-text">
-             <p><sup>1</sup> NIMHD / Healthcare utilization disparity studies.</p>
-             <p><sup>2</sup> Counterforce Health / APA MHPAEA parity violation reports.</p>
-             <p><sup>3</sup> MDPI / Psychology Today research on cultural stigma.</p>
+            <p><sup>1</sup> NIMHD / Healthcare utilization disparity studies.</p>
+            <p><sup>2</sup> Counterforce Health / APA MHPAEA parity violation reports.</p>
+            <p><sup>3</sup> MDPI / Psychology Today research on cultural stigma.</p>
           </div>
         </div>
       </section>
@@ -283,75 +283,80 @@ export default function Landing() {
       {/* ===== MISSION STATEMENTS ===== */}
       <section className="ld-mission-section">
         <div className="ld-container">
-           <div className="mission-statements-grid">
-              <div className="mission-statement-card">
-                 <span className="mission-number">Statement 1</span>
-                 <h3>Reducing Stress & Burnout</h3>
-                 <p>Students and professionals feel a lot of stress from work and school. But going to therapy and talking about it is exhausting. MindHaven makes it simple. You just take 5 minutes to draw how you feel—no words needed. You can also send positive notes or photos to a friendly public "Wellness Wall." It's a safe, easy way to release stress without looking at a scary, confusing clinical dashboard.</p>
-              </div>
-              <div className="mission-statement-card">
-                 <span className="mission-number">Statement 2</span>
-                 <h3>Breaking Stigma & Borders</h3>
-                 <p>In places like Nepal, people are afraid to seek help because of judgment—even from local doctors. MindHaven acts like a digital "free health camp" for immigrants and disabled users. A person can draw their feelings, and our ElevenLabs AI translates the session so a volunteer doctor in the US or India can help them entirely in their own language.</p>
-                 <br />
-                 <p><strong>For Doctors & Clinics:</strong> Insurance companies reject a lot of mental health claims. MindHaven fixes this by automatically creating the exact reports doctors need to get insurance approved, saving them hours of paperwork.</p>
-              </div>
-           </div>
+          <div className="section-header-centered" style={{ marginBottom: '60px' }}>
+            <span className="section-tag">OUR SOLUTIONS</span>
+            <h2>Problems, and more problems?</h2>
+            <p>We are breaking down the biggest barriers in global mental healthcare with our B2B platform.</p>
+          </div>
+          <div className="mission-statements-grid">
+            <div className="mission-statement-card">
+              <span className="mission-number">Statement 1</span>
+              <h3>Reducing Stress & Burnout</h3>
+              <p>Students and professionals feel a lot of stress from work and school. But going to therapy and talking about it is exhausting. MindHaven makes it simple. You just take 5 minutes to draw how you feel—no words needed. You can also send positive notes or photos to a friendly public "Wellness Wall." It's a safe, easy way to release stress without looking at a scary, confusing clinical dashboard.</p>
+            </div>
+            <div className="mission-statement-card">
+              <span className="mission-number">Statement 2</span>
+              <h3>Breaking Stigma & Borders</h3>
+              <p>In places like Nepal, people are afraid to seek help because of judgment—even from local doctors. MindHaven acts like a digital "free health camp" for immigrants and disabled users. A person can draw their feelings, and our ElevenLabs AI translates the session so a volunteer doctor in the US or India can help them entirely in their own language.</p>
+              <br />
+              <p><strong>For Doctors & Clinics:</strong> Insurance companies reject a lot of mental health claims. MindHaven fixes this by automatically creating the exact reports doctors need to get insurance approved, saving them hours of paperwork.</p>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* ===== HOW IT WORKS: DUAL PERSPECTIVE ===== */}
-      <section className="ld-how-it-works-dual" id="how-it-works-steps">
-         <div className="ld-container">
-            <div className="section-header-centered">
-               <span className="section-tag">HOW IT WORKS</span>
-               <h2>Bridging the gap between<br />experience and diagnosis.</h2>
-            </div>
-            
-            <div className="dual-perspective-grid">
-               <div className="perspective-card patient-perspective">
-                  <div className="perspective-header">
-                     <img src="/Untitled design (3)/cute-brain.svg" alt="Patient" className="perspective-icon-img" />
-                     <h3>For the Patient</h3>
-                  </div>
-                  <ul className="perspective-list">
-                     <li>
-                        <strong>1. Express Without Words:</strong> Just drag your finger across the camera. No keyboard, no talking required.
-                     </li>
-                     <li>
-                        <strong>2. Overcome Stigma:</strong> Draw in complete privacy. AI analyzes your kinetic movement and facial micro-expressions.
-                     </li>
-                     <li>
-                        <strong>3. Hear It Back:</strong> The AI speaks your emotional state back to you in your native language (15+ languages), validating your feelings.
-                     </li>
-                  </ul>
-                  <div className="helps-highlight">
-                     <strong>How this helps:</strong> Lowers the barrier to entry for culturally conservative communities where talking to a therapist is taboo. It provides an immediate release for burnt-out students and professionals who lack the energy to explain their stress.
-                  </div>
-               </div>
+      <section className="ld-how-it-works-dual" id="how-it-works">
+        <div className="ld-container">
+          <div className="section-header-centered">
+            <span className="section-tag">HOW IT WORKS</span>
+            <h2>Bridging the gap between<br />experience and diagnosis.</h2>
+          </div>
 
-               <div className="perspective-card clinic-perspective">
-                  <div className="perspective-header">
-                     <img src="/Untitled design (3)/brain-and-flowers.svg" alt="Clinic" className="perspective-icon-img" />
-                     <h3>For the Clinic & Provider</h3>
-                  </div>
-                  <ul className="perspective-list">
-                     <li>
-                        <strong>1. Objective Data Capture:</strong> Stop relying entirely on subjective self-reporting. Capture quantifiable kinetic and emotional data.
-                     </li>
-                     <li>
-                        <strong>2. Automated Charting:</strong> Every session automatically generates clinical documentation mapped to diagnostic criteria.
-                     </li>
-                     <li>
-                        <strong>3. Defeat Insurance Denials:</strong> Provide the concrete "medical necessity" proof needed to fight the 85% higher denial rate for behavioral health claims.
-                     </li>
-                  </ul>
-                  <div className="helps-highlight">
-                     <strong>How this helps:</strong> Gives clinicians the hard evidence needed to secure insurance approvals. It reduces massive administrative burdens, allowing providers to focus on actual patient care.
-                  </div>
-               </div>
+          <div className="dual-perspective-grid">
+            <div className="perspective-card patient-perspective">
+              <div className="perspective-header">
+                <img src="/Untitled design (3)/cute-brain.svg" alt="Patient" className="perspective-icon-img" />
+                <h3>For the Patient</h3>
+              </div>
+              <ul className="perspective-list">
+                <li>
+                  <strong>1. Express Without Words:</strong> Just drag your finger across the camera. No keyboard, no talking required.
+                </li>
+                <li>
+                  <strong>2. Overcome Stigma:</strong> Draw in complete privacy. AI analyzes your kinetic movement and facial micro-expressions.
+                </li>
+                <li>
+                  <strong>3. Hear It Back:</strong> The AI speaks your emotional state back to you in your native language (15+ languages), validating your feelings.
+                </li>
+              </ul>
+              <div className="helps-highlight">
+                <strong>How this helps:</strong> Lowers the barrier to entry for culturally conservative communities where talking to a therapist is taboo. It provides an immediate release for burnt-out students and professionals who lack the energy to explain their stress.
+              </div>
             </div>
-         </div>
+
+            <div className="perspective-card clinic-perspective">
+              <div className="perspective-header">
+                <img src="/Untitled design (3)/brain-and-flowers.svg" alt="Clinic" className="perspective-icon-img" />
+                <h3>For the Clinic & Provider</h3>
+              </div>
+              <ul className="perspective-list">
+                <li>
+                  <strong>1. Objective Data Capture:</strong> Stop relying entirely on subjective self-reporting. Capture quantifiable kinetic and emotional data.
+                </li>
+                <li>
+                  <strong>2. Automated Charting:</strong> Every session automatically generates clinical documentation mapped to diagnostic criteria.
+                </li>
+                <li>
+                  <strong>3. Defeat Insurance Denials:</strong> Provide the concrete "medical necessity" proof needed to fight the 85% higher denial rate for behavioral health claims.
+                </li>
+              </ul>
+              <div className="helps-highlight">
+                <strong>How this helps:</strong> Gives clinicians the hard evidence needed to secure insurance approvals. It reduces massive administrative burdens, allowing providers to focus on actual patient care.
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* ===== AUDIENCE SECTION: Who this is for ===== */}
@@ -448,7 +453,95 @@ export default function Landing() {
         ]}
       />
 
-      {/* Process section removed, replaced by DUAL PERSPECTIVE above */}
+      {/* ===== HOW IT WORKS / THE PROCESS (light) ===== */}
+      <section className="ld-process-section" id="the-process">
+        <div className="ld-container">
+          <motion.div
+            className="ld-process-layout"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={stagger}
+          >
+            {/* Left: Steps */}
+            <div className="ld-process-left">
+              <motion.p className="ld-section-label" variants={fadeUp} transition={{ duration: 0.4 }}>
+                THE PROCESS
+              </motion.p>
+              <motion.h2 className="ld-process-headline" variants={fadeUp} transition={{ duration: 0.5 }}>
+                <span>One drawing.</span>
+                <span>A complete clinical picture.</span>
+              </motion.h2>
+
+              <div className="ld-process-steps">
+                {STEPS.map((step, i) => (
+                  <motion.div
+                    className="ld-process-step"
+                    key={step.num}
+                    variants={fadeUp}
+                    transition={{ duration: 0.4 }}
+                  >
+                    <div className="ld-process-step-number">{step.num}</div>
+                    <div className="ld-process-step-connector">
+                      {i < STEPS.length - 1 && <span className="ld-process-step-line" />}
+                    </div>
+                    <div className="ld-process-step-content">
+                      <h3>{step.title}</h3>
+                      <p>{step.body}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Product screenshot placeholder */}
+            <motion.div
+              className="ld-process-visual"
+              variants={fadeUp}
+              transition={{ duration: 0.6 }}
+            >
+              <p className="ld-process-shot-label">LIVE SESSION</p>
+              <div className="ld-process-shot-frame">
+                <div className="ld-process-shot-header">
+                  <span>MINDCANVAS</span>
+                  <span>SESSION ACTIVE</span>
+                </div>
+                <div className="ld-process-shot-body">
+                  <div className="ld-process-shot-canvas">
+                    <div className="ld-process-shot-grid" />
+                    <div className="ld-process-shot-stroke ld-process-shot-stroke--one" />
+                    <div className="ld-process-shot-stroke ld-process-shot-stroke--two" />
+                    <div className="ld-process-shot-stroke ld-process-shot-stroke--three" />
+                    <div className="ld-process-shot-cursor" />
+                    <span className="ld-process-shot-cursor-label">Drawing</span>
+                  </div>
+                  <div className="ld-process-shot-sidebar">
+                    <span className="ld-process-shot-sidebar-label">DETECTED EMOTION</span>
+                    <div className="ld-process-shot-emotion-row">
+                      <span>Heaviness</span>
+                      <strong>78%</strong>
+                    </div>
+                    <div className="ld-process-shot-emotion-row">
+                      <span>Tension</span>
+                      <strong>62%</strong>
+                    </div>
+                    <div className="ld-process-shot-emotion-row">
+                      <span>Release</span>
+                      <strong>41%</strong>
+                    </div>
+                    <div className="ld-process-shot-wave">
+                      <span /><span /><span /><span /><span /><span />
+                    </div>
+                    <div className="ld-process-shot-voice">
+                      &ldquo;I see weight here. Something you&rsquo;ve been holding for a long time.&rdquo;
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
 
       {/* ===== PLATFORM SPOTLIGHT (dark) ===== */}
       <section className="ld-platform-section" id="platform">
@@ -553,45 +646,54 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ===== FINAL CTA (dark) ===== */}
-      <section className="ld-final-cta">
-        <div className="ld-container">
-          <motion.div
-            className="ld-final-cta-inner"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-80px' }}
-            variants={stagger}
+      {/* ===== FINAL CTA / DRAW WHAT YOU THINK (heroBg) ===== */}
+      <section className="ld-hero-footer" style={{ minHeight: '80vh', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div
+          className="ld-hero-bg"
+          style={{ backgroundImage: `url(${heroBg})`, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: 0 }}
+        />
+        <div className="ld-hero-overlay" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1 }} />
+
+        <div className="ld-hero-content" style={{ zIndex: 2, position: 'relative', textAlign: 'center', margin: '0 auto', maxWidth: '800px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <motion.h1
+            className="ld-hero-title"
+            style={{ fontSize: '4rem', color: '#fff', marginBottom: '20px', letterSpacing: '-0.02em', lineHeight: '1.1' }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
           >
-            <motion.h2
-              className="ld-final-cta-headline"
-              variants={fadeUp}
-              transition={{ duration: 0.6 }}
-            >
-              Begin.
-            </motion.h2>
-            <motion.p
-              className="ld-final-cta-subtext"
-              variants={fadeUp}
-              transition={{ duration: 0.5 }}
-            >
-              Your feelings deserve to be understood.
-            </motion.p>
-            <motion.button
-              className="ld-final-cta-button"
-              variants={fadeUp}
-              transition={{ duration: 0.4 }}
+            <span className="ld-hero-line1">Draw what you can't say.</span>
+            <br />
+            <span className="ld-hero-line2" style={{ color: 'var(--brand-yellow)' }}>Hear it back.</span>
+          </motion.h1>
+
+          <motion.p
+            className="ld-hero-subtitle"
+            style={{ fontSize: '1.25rem', color: '#CBD5E1', marginBottom: '40px' }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2, duration: 0.8 }}
+          >
+            Start your first nonverbal session instantly. No words. No sign-up required.
+          </motion.p>
+
+          <motion.div
+            className="ld-hero-actions"
+            style={{ display: 'flex', justifyContent: 'center' }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4, duration: 0.8 }}
+          >
+            <button
+              className="ld-btn ld-btn-primary"
               onClick={() => navigate('/onboarding')}
+              style={{ fontSize: '1.2rem', padding: '16px 40px', borderRadius: '50px' }}
             >
               Start Drawing
-            </motion.button>
-            <motion.p
-              className="ld-final-cta-meta"
-              variants={fadeUp}
-              transition={{ duration: 0.4 }}
-            >
-              Available in 15 languages &middot; No signup required
-            </motion.p>
+            </button>
           </motion.div>
         </div>
       </section>
@@ -622,7 +724,7 @@ export default function Landing() {
           <div className="ld-footer-extra">
             <h1 className="footer-big-brand">mindhaven</h1>
           </div>
-          
+
           <div className="ld-footer-bottom">
             <p>&copy; 2026 mindhaven. All rights reserved.</p>
           </div>
