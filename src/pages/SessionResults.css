@@ -312,3 +312,40 @@
     align-items: stretch;
   }
 }
+
+/* Voice Controls */
+.sr-voice-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sr-lang-active {
+  border-color: var(--teal-500, #14b8a6);
+  color: var(--teal-500, #14b8a6);
+}
+
+/* Crisis Banner */
+.sr-crisis-banner {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(249, 115, 22, 0.08));
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 16px;
+  padding: var(--space-lg);
+  text-align: center;
+}
+
+.sr-crisis-text {
+  font-size: 1.05rem;
+  font-weight: 500;
+  margin-bottom: var(--space-md);
+  color: var(--text-primary);
+}
+
+.sr-crisis-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-sm);
+}
