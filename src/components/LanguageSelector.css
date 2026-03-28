@@ -1,0 +1,88 @@
+.lang-selector {
+  position: relative;
+  z-index: 50;
+}
+
+.lang-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(26, 26, 26, 0.04);
+  border: 1px solid var(--border-light);
+  border-radius: 100px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--ink);
+  font-family: var(--font-body);
+  transition: border-color 0.2s;
+}
+
+.lang-trigger:hover {
+  border-color: var(--stone);
+}
+
+.lang-flag {
+  font-size: 0.9rem;
+}
+
+.lang-name {
+  font-weight: 500;
+}
+
+.lang-chevron {
+  font-size: 0.55rem;
+  color: var(--stone);
+}
+
+.lang-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--paper);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 6px;
+  min-width: 200px;
+  max-height: 320px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(26, 26, 26, 0.08);
+}
+
+.lang-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: var(--ink);
+  font-family: var(--font-body);
+  transition: background 0.15s;
+  text-align: left;
+}
+
+.lang-option:hover {
+  background: var(--bg-secondary);
+}
+
+.lang-option--active {
+  background: var(--primary-light);
+}
+
+.lang-option-name {
+  flex: 1;
+}
+
+.lang-stub {
+  font-size: 0.65rem;
+  color: var(--stone);
+  background: var(--bg-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}

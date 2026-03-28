@@ -1,0 +1,203 @@
+/* ===== App Experience — Prompt Picker ===== */
+.app-experience {
+  min-height: 100vh;
+  background: var(--cream);
+  padding: 100px 24px 60px; /* top padding accounts for GlobalNav */
+}
+
+.app-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.app-greeting-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.app-greeting-sub {
+  font-size: 1rem;
+  color: var(--stone);
+}
+
+.app-moods {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 24px 0 40px;
+}
+
+.app-mood-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  cursor: pointer;
+  min-width: 68px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.app-mood-btn:hover {
+  border-color: var(--peach);
+  transform: scale(1.05);
+}
+
+.app-mood-face {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.app-mood-label {
+  font-size: 0.65rem;
+  color: var(--stone);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.app-section {
+  margin-bottom: 24px;
+}
+
+.app-section-title {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.app-section-sub {
+  font-size: 0.9rem;
+  color: var(--stone);
+}
+
+.app-prompts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 48px;
+}
+
+.app-prompt-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 28px 20px;
+  border: 1.5px solid;
+  border-radius: 18px;
+  cursor: pointer;
+  gap: 8px;
+  min-height: 180px;
+  transition: transform 0.2s ease;
+}
+
+.app-prompt-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.app-prompt-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.app-prompt-desc {
+  font-size: 0.82rem;
+  color: var(--stone);
+  line-height: 1.4;
+}
+
+.app-recent {
+  border-top: 1px solid var(--border-light);
+  padding-top: 32px;
+}
+
+.app-recent-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 16px;
+}
+
+.app-recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.app-recent-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+}
+
+.app-recent-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.app-recent-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.app-recent-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-recent-prompt {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-transform: capitalize;
+}
+
+.app-recent-date {
+  font-size: 0.75rem;
+  color: var(--stone);
+}
+
+.app-recent-score {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  border-radius: 100px;
+}
+
+@media (max-width: 600px) {
+  .app-prompts-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 400px) {
+  .app-prompts-grid {
+    grid-template-columns: 1fr;
+  }
+}

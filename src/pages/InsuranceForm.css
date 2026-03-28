@@ -45,10 +45,7 @@
   font-family: var(--font-display);
   font-weight: 800;
   letter-spacing: -0.03em;
-  background: linear-gradient(135deg, var(--teal-700) 0%, var(--teal-500) 45%, var(--teal-400) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--ink);
 }
 
 .ins-header .btn-ghost {
@@ -102,10 +99,7 @@
   font-weight: 800;
   font-size: 1.4rem;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, var(--teal-800) 0%, var(--teal-600) 40%, var(--teal-400) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--peach);
 }
 
 .isp-label {
@@ -197,8 +191,8 @@
 
 .parity-shield-badge {
   padding: 4px 14px;
-  background: var(--teal-600);
-  color: #fff;
+  background: var(--ink);
+  color: var(--paper);
   border-radius: var(--radius-full);
   font-size: 0.72rem;
   font-weight: 700;
@@ -279,7 +273,7 @@
 }
 
 .parity-clear {
-  color: var(--teal-600);
+  color: var(--success);
   font-weight: 600;
   font-family: var(--font-display);
 }
@@ -491,8 +485,8 @@
 .appeal-footer {
   margin-top: var(--space-md);
   padding-top: var(--space-md);
-  border-top: 1px solid var(--gray-100);
-  color: var(--teal-600);
+  border-top: 1px solid var(--border-light);
+  color: var(--peach);
   font-weight: 600;
   font-family: var(--font-display);
 }

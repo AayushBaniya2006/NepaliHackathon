@@ -11,10 +11,12 @@ import { useAnalysis } from '../hooks/useAnalysis';
 import { useStorage } from '../hooks/useStorage';
 import { getPromptById, DRAWING_PROMPTS } from '../utils/drawingPrompts';
 import { STAMPS, getStampByGesture } from '../utils/stamps';
-import { isAzureUploadConfigured, uploadSessionReplayToAzure } from '../utils/azureBlob';
+import GestureConfidenceBar from '../components/GestureConfidenceBar';
+import LiveSparkline from '../components/LiveSparkline';
+import CanvasHeatmap from '../components/CanvasHeatmap';
+import WaveformAnimation from '../components/WaveformAnimation';
+import ProgressiveTextStream from '../components/ProgressiveTextStream';
 import './DrawingSession.css';
-
-const VOICECANVAS_PATIENT_ID = import.meta.env.VITE_VOICECANVAS_PATIENT_ID?.trim() || 'pt-001';
 
 const BRUSH_COLORS = [
   { name: 'Red', value: 'rgba(239, 68, 68, 0.85)' },
@@ -30,11 +32,10 @@ const BRUSH_COLORS = [
 
 const TIMER_SECONDS = 120;
 
-export default function DrawingSession() {
+export default function DrawingSession({ promptOverride }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const promptId = location.state?.promptId || 'energy';
-  const preSessionMood = location.state?.preSessionMood ?? null;
+  const promptId = promptOverride?.id || location.state?.promptId || 'energy';
   const prompt = getPromptById(promptId) || DRAWING_PROMPTS[0];
 
   const videoRef = useRef(null);
@@ -63,30 +64,42 @@ export default function DrawingSession() {
     skippedMeals: null, meltdowns: 0, sleep: null,
   });
 
-  const stampCooldownRef = useRef(false);
-  const webcamFramesRef = useRef([]);
-  const webcamIntervalRef = useRef(null);
-  const strokeDataRef = useRef([]);
-  const sessionStartTime = useRef(Date.now());
+  const [gestureConfidence, setGestureConfidence] = useState(0);
+  const [strokeSpeeds, setStrokeSpeeds] = useState([]);
+  const [coverageGrid, setCoverageGrid] = useState(new Array(80).fill(0));
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [voiceState, setVoiceState] = useState('idle'); // 'idle' | 'loading' | 'playing'
+  const [analyzeProgress, setAnalyzeProgress] = useState(0);
+  const [analyzeStage, setAnalyzeStage] = useState('');
 
-  const handleStrokePoint = useCallback((point) => {
-    strokeDataRef.current.push(point);
-  }, []);
+  const stampCooldownRef = useRef(false);
 
   const { recognizeSign, interpretSignMessage, loading: claudeLoading } = useClaude();
   const { analyzeDrawing, loading: analysisLoading } = useAnalysis();
-  const { profile, saveSession, saveAnalytics } = useStorage();
-  const mediaRecorderRef = useRef(null);
+  const { saveSession, saveAnalytics } = useStorage();
 
   useEffect(() => {
     if (!timerActive || timeLeft <= 0) return;
+
+    let hidden = false;
+    const handleVisibility = () => {
+      hidden = document.hidden;
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     const interval = setInterval(() => {
-      setTimeLeft(t => {
-        if (t <= 1) { setTimerActive(false); return 0; }
-        return t - 1;
-      });
+      if (!hidden) {
+        setTimeLeft(t => {
+          if (t <= 1) { setTimerActive(false); return 0; }
+          return t - 1;
+        });
+      }
     }, 1000);
-    return () => clearInterval(interval);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [timerActive, timeLeft]);
 
   useEffect(() => {
@@ -94,8 +107,9 @@ export default function DrawingSession() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleGesture = useCallback(async (detectedGesture, fingertip) => {
+  const handleGesture = useCallback(async (detectedGesture, fingertip, confidence) => {
     setGesture(detectedGesture);
+    if (confidence !== undefined) setGestureConfidence(confidence);
     if (mode !== 'draw') return;
 
     if (detectedGesture === 'index_up' && fingertip) {
@@ -121,79 +135,51 @@ export default function DrawingSession() {
     if (detectedGesture === 'speak') await handleAnalyze();
   }, [mode]);
 
-  const stopRecorderAndGetBlob = useCallback(() => {
-    return new Promise((resolve) => {
-      const state = mediaRecorderRef.current;
-      if (!state?.recorder || state.recorder.state === 'inactive') {
-        resolve(null);
-        return;
-      }
-      const { recorder, chunks, mimeType } = state;
-      recorder.onstop = () => {
-        const blob = chunks.length ? new Blob(chunks, { type: mimeType || 'video/webm' }) : null;
-        resolve(blob);
-      };
-      recorder.stop();
-    });
-  }, []);
-
   const handleAnalyze = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
+    setAnalyzeProgress(0);
+    setAnalyzeStage('Capturing drawing...');
+
     const dataUrl = canvasRef.current?.toDataURL();
     if (!dataUrl) { setIsProcessing(false); return; }
 
-    const canvasPngBlob = await new Promise((resolve) => {
-      const canvas = canvasRef.current?.getCanvas();
-      if (canvas) {
-        canvas.toBlob((b) => resolve(b), 'image/png', 0.95);
-      } else {
-        resolve(null);
-      }
-    });
+    // Check canvas data size (max 5MB)
+    const sizeKB = (dataUrl.length * 0.75) / 1024;
+    if (sizeKB > 5000) {
+      setIsProcessing(false);
+      alert('Drawing is too large. Please clear some and try again.');
+      return;
+    }
 
-    const videoBlob = await stopRecorderAndGetBlob();
-    const sessionId = Date.now();
+    // Stage 1: Capture (0-30%)
+    setAnalyzeProgress(15);
+    await new Promise(r => setTimeout(r, 400));
+    setAnalyzeProgress(30);
+    setAnalyzeStage('Analyzing patterns...');
 
+    // Stage 2: Analysis (30-70%)
+    setAnalyzeProgress(45);
     const result = await analyzeDrawing(dataUrl, promptId, prompt.title);
+    setAnalyzeProgress(70);
+    setAnalyzeStage('Generating clinical note...');
+
+    // Stage 3: Generate (70-100%)
     if (result) {
+      setAnalysisResult(result);
+      setAnalyzeProgress(85);
+      await new Promise(r => setTimeout(r, 300));
+      setAnalyzeProgress(100);
+      await new Promise(r => setTimeout(r, 200));
+
       saveSession({
-        id: sessionId,
-        promptId,
-        imageUrl: dataUrl,
-        stressScore: result.stress_score,
-        feedbackShort: result.feedback_short,
-        caregiverNote,
-        webcamFrames: webcamFramesRef.current,
-        strokeData: strokeDataRef.current,
-        preSessionMood,
+        promptId, imageUrl: dataUrl, stressScore: result.stress_score,
+        feedbackShort: result.feedback_short, caregiverNote,
       });
       saveAnalytics({
-        promptId,
-        stressScore: result.stress_score,
-        indicators: result.indicators,
-        pattern: result.pattern,
-        thresholdMet: result.threshold_met,
-        preSessionMood,
+        promptId, stressScore: result.stress_score, indicators: result.indicators,
+        pattern: result.pattern, thresholdMet: result.threshold_met,
       });
-
-      if (isAzureUploadConfigured() && (videoBlob?.size || canvasPngBlob?.size || dataUrl)) {
-        uploadSessionReplayToAzure({
-          patientId: VOICECANVAS_PATIENT_ID,
-          sessionId,
-          videoBlob: videoBlob?.size ? videoBlob : null,
-          canvasBlob: canvasPngBlob?.size ? canvasPngBlob : null,
-          canvasDataUrl: dataUrl,
-          meta: {
-            promptTitle: prompt.title,
-            promptId,
-            sessionDate: new Date().toISOString(),
-            stressScore: result.stress_score,
-            patientName: profile?.name ?? null,
-          },
-        }).catch((err) => console.warn('Azure replay upload failed:', err));
-      }
-
       navigate('/session-results', { state: { result, canvasImage: dataUrl, promptId } });
     }
     setIsProcessing(false);
@@ -275,54 +261,6 @@ export default function DrawingSession() {
     initCamera();
     return () => { stream?.getTracks().forEach(t => t.stop()); stopTracking(); stopSignRecognition(); };
   }, [stopTracking, stopSignRecognition]);
-
-  // Webcam frame capture every 3 seconds for facial analysis
-  useEffect(() => {
-    if (!cameraReady || !videoRef.current) return;
-    webcamIntervalRef.current = setInterval(() => {
-      const video = videoRef.current;
-      if (!video || video.readyState < 2) return;
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = video.videoWidth;
-      tempCanvas.height = video.videoHeight;
-      tempCanvas.getContext('2d').drawImage(video, 0, 0);
-      webcamFramesRef.current.push({
-        image: tempCanvas.toDataURL('image/jpeg', 0.5),
-        timestamp: Date.now() - sessionStartTime.current,
-      });
-    }, 3000);
-    return () => {
-      if (webcamIntervalRef.current) clearInterval(webcamIntervalRef.current);
-    };
-  }, [cameraReady]);
-
-  useEffect(() => {
-    if (!cameraReady || !videoRef.current?.srcObject || typeof MediaRecorder === 'undefined') return;
-    const stream = videoRef.current.srcObject;
-    let mimeType = '';
-    if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) mimeType = 'video/webm;codecs=vp9';
-    else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) mimeType = 'video/webm;codecs=vp8';
-    else if (MediaRecorder.isTypeSupported('video/webm')) mimeType = 'video/webm';
-    else return;
-
-    const chunks = [];
-    const mr = new MediaRecorder(stream, { mimeType });
-    mr.ondataavailable = (e) => {
-      if (e.data?.size > 0) chunks.push(e.data);
-    };
-    try {
-      mr.start(1000);
-    } catch (e) {
-      console.warn('MediaRecorder could not start', e);
-      return;
-    }
-    mediaRecorderRef.current = { recorder: mr, chunks, mimeType };
-
-    return () => {
-      if (mr.state === 'recording') mr.stop();
-      mediaRecorderRef.current = null;
-    };
-  }, [cameraReady]);
 
   useEffect(() => {
     if (cameraReady && isLoaded && mode === 'draw') startTracking();
@@ -457,8 +395,7 @@ export default function DrawingSession() {
                     <p className="ds-fallback-note">You can still draw with your mouse.</p>
                     <div className="ds-mouse-canvas">
                       <DrawingCanvas ref={canvasRef} width={1280} height={720}
-                        currentColor={BRUSH_COLORS[selectedColor].value}
-                        onStrokePoint={handleStrokePoint} />
+                        currentColor={BRUSH_COLORS[selectedColor].value} />
                     </div>
                   </>
                 )}
@@ -473,7 +410,6 @@ export default function DrawingSession() {
                   <DrawingCanvas ref={canvasRef}
                     width={canvasDimensions.width} height={canvasDimensions.height}
                     currentColor={BRUSH_COLORS[selectedColor].value}
-                    onStrokePoint={handleStrokePoint}
                   />
                 )}
                 {mode === 'sign' && (
@@ -527,6 +463,7 @@ export default function DrawingSession() {
             {mode === 'draw' && gesture !== 'none' && (
               <div className="ds-cc-bar">
                 <GestureIndicator gesture={gesture} isProcessing={isProcessing} inline stampName={activeStampName} />
+                <GestureConfidenceBar confidence={gestureConfidence} />
               </div>
             )}
           </div>
@@ -652,6 +589,90 @@ export default function DrawingSession() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* ===== LIVE ANALYSIS PANELS (new) ===== */}
+
+          {/* Emotion Feed */}
+          <div className="ds-side-card ds-emotion-card">
+            <div className="ds-sc-header">
+              <span>Emotion</span>
+              <span className="ds-live-badge">Live</span>
+            </div>
+            {analysisResult ? (
+              <div className="ds-emotion-result">
+                <span className="ds-emotion-emoji">{analysisResult.feedback_emoji || '🎭'}</span>
+                <span className="ds-emotion-label">{analysisResult.indicators?.dominant_mood || 'Processing'}</span>
+                <GestureConfidenceBar confidence={analysisResult.stress_score ? analysisResult.stress_score / 10 : 0} />
+              </div>
+            ) : (
+              <div className="ds-emotion-detecting">
+                <motion.span
+                  animate={{ opacity: [0.4, 1, 0.4] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  Detecting...
+                </motion.span>
+              </div>
+            )}
+          </div>
+
+          {/* Session Patterns */}
+          <div className="ds-side-card ds-patterns-card">
+            <div className="ds-sc-header">
+              <span>Session Patterns</span>
+            </div>
+            <div className="ds-pattern-row">
+              <span className="ds-pattern-label">Drawing Speed</span>
+              <LiveSparkline data={strokeSpeeds} />
+            </div>
+            <div className="ds-pattern-row">
+              <span className="ds-pattern-label">Coverage</span>
+              <CanvasHeatmap grid={coverageGrid} />
+            </div>
+          </div>
+
+          {/* Progressive SOAP */}
+          {analysisResult?.clinical_note && (
+            <motion.div className="ds-side-card ds-soap-card"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}>
+              <div className="ds-sc-header">
+                <span>Clinical Note</span>
+              </div>
+              {['S', 'O', 'A', 'P'].map((key, idx) => (
+                <div key={key} className="ds-soap-section">
+                  <span className="ds-soap-key">{key}</span>
+                  <ProgressiveTextStream
+                    text={analysisResult.clinical_note[key] || ''}
+                    speed={15}
+                    isActive={idx === 0}
+                  />
+                </div>
+              ))}
+            </motion.div>
+          )}
+
+          {/* Voice Output */}
+          <div className="ds-side-card ds-voice-card">
+            <div className="ds-sc-header">
+              <span>Voice</span>
+            </div>
+            <WaveformAnimation state={voiceState} />
+            <button
+              className="btn btn-sm btn-outline ds-voice-btn"
+              onClick={() => {
+                if (analysisResult?.personal_statement) {
+                  setVoiceState('loading');
+                  // Voice will be connected to useElevenLabs later
+                  setTimeout(() => setVoiceState('playing'), 1500);
+                  setTimeout(() => setVoiceState('idle'), 5000);
+                }
+              }}
+              disabled={!analysisResult}
+            >
+              Hear interpretation
+            </button>
+          </div>
         </div>
       </div>
 
@@ -660,10 +681,21 @@ export default function DrawingSession() {
         {isProcessing && (
           <motion.div className="ds-analyzing-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="ds-analyzing-content">
-              <motion.div className="ds-analyzing-spinner" animate={{ rotate: 360 }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }} />
-              <h2>{mode === 'draw' ? 'AI is analyzing your drawing...' : 'Interpreting your signs...'}</h2>
-              <p>{mode === 'draw' ? 'Evaluating color patterns, line pressure, symbols, and emotional markers.' : 'Converting sign sequences into clinical communications.'}</p>
+              <div className="ds-analyze-progress">
+                <div className="ds-analyze-bar-track">
+                  <motion.div
+                    className="ds-analyze-bar-fill"
+                    initial={{ width: '0%' }}
+                    animate={{ width: `${analyzeProgress}%` }}
+                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                  />
+                </div>
+                <span className="ds-analyze-pct">{analyzeProgress}%</span>
+              </div>
+              <h2>{analyzeStage || 'Analyzing...'}</h2>
+              <p>{mode === 'draw'
+                ? 'Evaluating color patterns, line pressure, symbols, and emotional markers.'
+                : 'Converting sign sequences into clinical communications.'}</p>
             </div>
           </motion.div>
         )}

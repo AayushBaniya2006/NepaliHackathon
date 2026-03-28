@@ -28,10 +28,7 @@
 .res-brand-text {
   font-family: var(--font-display);
   font-weight: 700;
-  background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--ink);
 }
 
 .res-main {

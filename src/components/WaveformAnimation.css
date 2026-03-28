@@ -1,0 +1,60 @@
+.waveform {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.waveform-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 24px;
+}
+
+.waveform-bar {
+  width: 3px;
+  background: var(--peach);
+  border-radius: 1.5px;
+  height: 4px;
+  transition: height 0.1s ease;
+}
+
+.waveform--idle .waveform-bar {
+  height: 4px;
+}
+
+.waveform--loading .waveform-bar {
+  animation: waveformPulse 1.2s ease-in-out infinite;
+}
+
+.waveform--playing .waveform-bar {
+  animation: waveformPlay 0.6s ease-in-out infinite alternate;
+}
+
+.waveform-loading-text {
+  font-size: 0.7rem;
+  color: var(--stone);
+  font-weight: 500;
+}
+
+@keyframes waveformPulse {
+  0%, 100% { height: 4px; opacity: 0.4; }
+  50% { height: 12px; opacity: 1; }
+}
+
+@keyframes waveformPlay {
+  0% { height: 4px; }
+  100% { height: calc(4px + var(--bar-height, 16px)); }
+}
+
+.waveform--playing .waveform-bar:nth-child(1) { --bar-height: 12px; }
+.waveform--playing .waveform-bar:nth-child(2) { --bar-height: 18px; }
+.waveform--playing .waveform-bar:nth-child(3) { --bar-height: 10px; }
+.waveform--playing .waveform-bar:nth-child(4) { --bar-height: 20px; }
+.waveform--playing .waveform-bar:nth-child(5) { --bar-height: 14px; }
+.waveform--playing .waveform-bar:nth-child(6) { --bar-height: 22px; }
+.waveform--playing .waveform-bar:nth-child(7) { --bar-height: 8px; }
+.waveform--playing .waveform-bar:nth-child(8) { --bar-height: 16px; }
+.waveform--playing .waveform-bar:nth-child(9) { --bar-height: 20px; }
+.waveform--playing .waveform-bar:nth-child(10) { --bar-height: 12px; }
