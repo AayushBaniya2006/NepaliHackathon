@@ -223,7 +223,7 @@
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--teal-600);
+  color: var(--peach);
   margin-bottom: var(--space-md);
   font-weight: 700;
 }
@@ -233,7 +233,7 @@
   font-style: italic;
   color: var(--text-primary);
   line-height: 1.65;
-  border-left: 4px solid var(--teal-500);
+  border-left: 4px solid var(--peach);
   padding-left: var(--space-lg);
   font-family: var(--font-display);
   font-weight: 500;

@@ -14,8 +14,7 @@
 .brand-icon { font-size: 1.5rem; }
 .brand-text {
   font-family: var(--font-display); font-weight: 800; font-size: 1.2rem;
-  background: linear-gradient(135deg, var(--teal-600), var(--teal-500));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  color: var(--ink);
 }
 
 .dash-nav { display: flex; gap: 4px; }
@@ -96,8 +95,7 @@
 
 .streak-num {
   font-family: var(--font-display); font-weight: 800; font-size: 3.5rem;
-  background: linear-gradient(135deg, var(--sky-500), var(--teal-500));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  color: var(--peach);
 }
 
 /* Section */
@@ -196,8 +194,8 @@
 .dash-nudge {
   display: flex; align-items: flex-start; gap: var(--space-md);
   padding: var(--space-lg) var(--space-xl);
-  background: linear-gradient(135deg, var(--teal-50), var(--lime-50));
-  border: 1px solid var(--teal-200);
+  background: var(--primary-light);
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-xl);
 }
 
@@ -205,7 +203,7 @@
 .dash-nudge p { color: var(--gray-600); font-size: 0.88rem; line-height: 1.55; }
 
 .link-btn {
-  color: var(--teal-600); font-weight: 700; text-decoration: underline; text-underline-offset: 3px;
+  color: var(--peach); font-weight: 700; text-decoration: underline; text-underline-offset: 3px;
   cursor: pointer; background: none; border: none; font-family: inherit; font-size: inherit; padding: 0;
 }
 

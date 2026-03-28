@@ -236,7 +236,7 @@
   position: absolute;
   inset: 0;
   background-size: cover;
-  background-position: center 30%;
+  background-position: center center;
   background-repeat: no-repeat;
 }
 
@@ -253,16 +253,16 @@
 }
 
 .ld-hero-content {
-  position: relative;
+  position: absolute;
+  bottom: 10%;
+  left: 5%;
   z-index: 1;
-  text-align: center;
-  max-width: 560px;
-  margin: 0 0 0 auto;
-  margin-right: 8%;
+  width: 44%;
+  max-width: 580px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 0 48px;
+  align-items: flex-start;
+  text-align: left;
 }
 
 .ld-hero-badge {
@@ -307,9 +307,8 @@
   line-height: 1.05;
   letter-spacing: -0.02em;
   color: #1A1A1A;
-  margin: 0 auto;
-  max-width: 700px;
-  text-align: center;
+  margin: 0;
+  text-align: left;
 }
 
 .ld-hero-line1 {
@@ -328,9 +327,8 @@
   font-weight: 400;
   line-height: 1.5;
   color: #6B6560;
-  margin: 16px auto 36px;
-  max-width: 540px;
-  text-align: center;
+  margin: 16px 0 36px;
+  text-align: left;
 }
 
 /* --- Returning User Link --- */
@@ -813,10 +811,14 @@
   }
 
   .ld-hero-content {
-    margin: 0 auto;
-    margin-right: auto;
-    padding: 0 24px;
+    position: relative;
+    bottom: auto;
+    left: auto;
+    width: 100%;
     max-width: 100%;
+    padding: 0 24px;
+    align-items: center;
+    text-align: center;
   }
 
   .ld-hero-title {
