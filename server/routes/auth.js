@@ -8,7 +8,10 @@ const router = Router();
 router.post('/register', (req, res) => {
   try {
     const { name, role, isNonverbal, language } = req.body;
-    if (!name || !role) return res.status(400).json({ error: 'Name and role are required' });
+    if (!name || typeof name !== 'string' || name.length > 100 || name.length < 1) {
+      return res.status(400).json({ error: 'Name must be 1-100 characters' });
+    }
+    if (!role) return res.status(400).json({ error: 'Name and role are required' });
     if (!['patient', 'caregiver'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
 
     const id = uuid();
@@ -19,7 +22,8 @@ router.post('/register', (req, res) => {
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
     res.json({ token, user });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Auth error:', err);
+    res.status(500).json({ error: 'Registration failed. Please try again.' });
   }
 });
 
@@ -30,7 +34,8 @@ router.get('/me', (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Auth error:', err);
+    res.status(500).json({ error: 'Authentication failed. Please try again.' });
   }
 });
 

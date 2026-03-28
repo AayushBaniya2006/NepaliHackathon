@@ -2,7 +2,7 @@ import { WebSocketServer } from 'ws';
 import jwt from 'jsonwebtoken';
 import db from './db.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'mindcanvas-dev-secret';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export function setupWebSocket(server) {
   const wss = new WebSocketServer({ server, path: '/ws' });

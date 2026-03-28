@@ -11,7 +11,8 @@ router.get('/', (req, res) => {
     ).all(req.user.id);
     res.json(sessions);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Session error:', err);
+    res.status(500).json({ error: 'Session operation failed' });
   }
 });
 
@@ -22,7 +23,8 @@ router.get('/:id', (req, res) => {
     if (!session) return res.status(404).json({ error: 'Session not found' });
     res.json(session);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Session error:', err);
+    res.status(500).json({ error: 'Session operation failed' });
   }
 });
 
@@ -40,7 +42,8 @@ router.post('/', (req, res) => {
 
     res.json({ id, created_at: new Date().toISOString() });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Session error:', err);
+    res.status(500).json({ error: 'Session operation failed' });
   }
 });
 

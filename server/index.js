@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -19,8 +21,15 @@ const app = express();
 const server = createServer(app);
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001'],
+  credentials: true,
+}));
 app.use(express.json({ limit: '10mb' }));
+
+const generalLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
+app.use('/api', generalLimiter);
 
 // Public routes
 app.use('/api/auth', authRoutes);
@@ -31,8 +40,9 @@ app.use('/api/resources', resourcesRoutes);
 app.use('/api/sessions', authMiddleware, sessionRoutes);
 
 // API proxy routes (no auth needed — they proxy to external APIs)
-app.use('/api/analyze', analyzeRoutes);
-app.use('/api/voice', voiceRoutes);
+const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 50, message: { error: 'Too many requests, try again later' } });
+app.use('/api/analyze', apiLimiter, analyzeRoutes);
+app.use('/api/voice', apiLimiter, voiceRoutes);
 
 // Serve built frontend in production
 app.use(express.static(join(__dirname, '..', 'dist')));

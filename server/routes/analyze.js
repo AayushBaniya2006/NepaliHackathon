@@ -2,6 +2,12 @@ import { Router } from 'express';
 
 const router = Router();
 
+function validateBase64(str, maxSizeMB = 5) {
+  if (typeof str !== 'string') return false;
+  const sizeBytes = (str.length * 3) / 4;
+  return sizeBytes < maxSizeMB * 1024 * 1024;
+}
+
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 
 const ANALYSIS_SYSTEM_PROMPT = `You are a clinical art therapy analysis AI. Analyze the drawing for clinical markers:
@@ -31,6 +37,12 @@ router.post('/drawing', async (req, res) => {
 
   try {
     const { imageBase64, promptId, promptLabel } = req.body;
+    if (!imageBase64 || !validateBase64(imageBase64)) {
+      return res.status(400).json({ error: 'Invalid or oversized image data' });
+    }
+    if (promptLabel && promptLabel.length > 200) {
+      return res.status(400).json({ error: 'Prompt label too long' });
+    }
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
     const response = await fetch(CLAUDE_API_URL, {
@@ -65,7 +77,8 @@ router.post('/drawing', async (req, res) => {
       res.json({ raw: text });
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Analysis error:', err);
+    res.status(500).json({ error: 'Analysis failed. Please try again.' });
   }
 });
 
@@ -75,6 +88,9 @@ router.post('/sign', async (req, res) => {
 
   try {
     const { frameBase64 } = req.body;
+    if (!frameBase64 || !validateBase64(frameBase64)) {
+      return res.status(400).json({ error: 'Invalid or oversized frame data' });
+    }
     const base64Data = frameBase64.replace(/^data:image\/\w+;base64,/, '');
 
     const response = await fetch(CLAUDE_API_URL, {
@@ -101,7 +117,8 @@ router.post('/sign', async (req, res) => {
     const text = data.content?.[0]?.text || '{}';
     try { res.json(JSON.parse(text)); } catch { res.json({ recognized: false }); }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Analysis error:', err);
+    res.status(500).json({ error: 'Analysis failed. Please try again.' });
   }
 });
 
@@ -111,6 +128,9 @@ router.post('/sign-message', async (req, res) => {
 
   try {
     const { signedWords } = req.body;
+    if (!signedWords || !Array.isArray(signedWords) || signedWords.length > 100) {
+      return res.status(400).json({ error: 'Invalid signed words' });
+    }
     const response = await fetch(CLAUDE_API_URL, {
       method: 'POST',
       headers: {
@@ -132,7 +152,8 @@ router.post('/sign-message', async (req, res) => {
     const text = data.content?.[0]?.text || '{}';
     try { res.json(JSON.parse(text)); } catch { res.json({ raw: text }); }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Analysis error:', err);
+    res.status(500).json({ error: 'Analysis failed. Please try again.' });
   }
 });
 

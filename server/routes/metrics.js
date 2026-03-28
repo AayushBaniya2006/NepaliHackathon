@@ -19,7 +19,8 @@ router.get('/', (req, res) => {
       languagesSupported: 15,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Metrics error:', err);
+    res.status(500).json({ error: 'Failed to retrieve metrics' });
   }
 });
 
@@ -28,7 +29,8 @@ router.get('/live', (req, res) => {
     const activeSessions = db.prepare("SELECT COUNT(*) as count FROM sessions WHERE created_at >= datetime('now', '-5 minutes')").get().count;
     res.json({ active_sessions: activeSessions });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Metrics error:', err);
+    res.status(500).json({ error: 'Failed to retrieve metrics' });
   }
 });
 
