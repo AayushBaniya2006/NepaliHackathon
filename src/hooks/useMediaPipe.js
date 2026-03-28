@@ -47,6 +47,30 @@ export function useMediaPipe(videoRef, onGestureChange, options) {
         setIsLoaded(true);
       } catch (errCpu) {
         console.error('MediaPipe init error:', errGpu, errCpu);
+    const vision = await FilesetResolver.forVisionTasks(
+      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
+    );
+    const options = (delegate) => ({
+      baseOptions: {
+        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+        delegate,
+      },
+      runningMode: 'VIDEO',
+      numHands: 1,
+      minHandDetectionConfidence: 0.5,
+      minHandPresenceConfidence: 0.5,
+      minTrackingConfidence: 0.5,
+    });
+    try {
+      handLandmarkerRef.current = await HandLandmarker.createFromOptions(vision, options('GPU'));
+      setIsLoaded(true);
+    } catch (gpuErr) {
+      console.warn('MediaPipe GPU init failed, trying CPU:', gpuErr);
+      try {
+        handLandmarkerRef.current = await HandLandmarker.createFromOptions(vision, options('CPU'));
+        setIsLoaded(true);
+      } catch (err) {
+        console.error('MediaPipe init error:', err);
         setError('Could not load hand tracking. Please try refreshing.');
       }
     }

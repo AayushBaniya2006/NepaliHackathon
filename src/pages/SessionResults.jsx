@@ -1,34 +1,53 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getPromptById } from '../utils/drawingPrompts';
 import { exportClinicalNotePDF } from '../utils/pdfExport';
 import { useStorage } from '../hooks/useStorage';
+import { useElevenLabs } from '../hooks/useElevenLabs';
+import { isAzureUploadConfigured, uploadSessionReplayToAzure } from '../utils/azureBlob';
+import DoctorSelector from '../components/DoctorSelector';
 import './SessionResults.css';
+
+const VOICECANVAS_PATIENT_ID = import.meta.env.VITE_VOICECANVAS_PATIENT_ID?.trim() || 'pt-001';
 
 export default function SessionResults() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { result, canvasImage, promptId } = location.state || {};
+  const { result, canvasImage, promptId, liveMode } = location.state || {};
   const prompt = getPromptById(promptId);
   const { profile, sessions } = useStorage();
+  const { speak: elevenSpeak } = useElevenLabs();
 
   const [shared, setShared] = useState(false);
   const [voiceLang, setVoiceLang] = useState('patient'); // 'patient' | 'en'
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [showDoctorSelector, setShowDoctorSelector] = useState(false);
+  const [connectedDoctor, setConnectedDoctor] = useState(null); // doctor object after connecting
 
   useEffect(() => {
     if (!result) navigate('/dashboard');
   }, [result, navigate]);
 
-  // Check if already shared
+  // Check if already shared (informational only — does not disable the button)
   useEffect(() => {
     if (!result) return;
     const latest = sessions[sessions.length - 1];
     if (latest?.sharedWithDoctor) setShared(true);
   }, [result, sessions]);
 
-  const handleShare = useCallback(() => {
+  // Auto-play personal statement via ElevenLabs on load
+  useEffect(() => {
+    if (!result?.personal_statement) return;
+    const text = liveMode
+      ? (result.personal_statement_en || result.personal_statement)
+      : result.personal_statement;
+    const timer = setTimeout(() => elevenSpeak(text), 1200);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const triggerAzureShare = useCallback(() => {
     try {
       const stored = JSON.parse(localStorage.getItem('mc_sessions') || '[]');
       if (stored.length > 0) {
@@ -37,7 +56,33 @@ export default function SessionResults() {
       }
     } catch { /* ignore */ }
     setShared(true);
-  }, []);
+
+    // Re-upload drawing to Azure so the doctor always gets the latest version
+    if (canvasImage && isAzureUploadConfigured()) {
+      const latest = sessions[sessions.length - 1];
+      const sessionId = latest?.id ?? Date.now();
+      uploadSessionReplayToAzure({
+        patientId: VOICECANVAS_PATIENT_ID,
+        sessionId,
+        videoBlob: null,
+        canvasDataUrl: canvasImage,
+        meta: {
+          promptTitle: prompt?.title ?? '',
+          promptId: promptId ?? '',
+          sessionDate: latest?.timestamp ?? new Date().toISOString(),
+          stressScore: result?.stress_score ?? null,
+          patientName: profile?.name ?? null,
+        },
+      }).catch((err) => console.warn('Azure re-upload on share failed:', err));
+    }
+  }, [canvasImage, sessions, result, profile, prompt, promptId]);
+
+  const handleConnectDoctor = useCallback((doctor) => {
+    // Trigger the actual data share regardless of which doctor was selected
+    triggerAzureShare();
+    setConnectedDoctor(doctor);
+    setShowDoctorSelector(false);
+  }, [triggerAzureShare]);
 
   const handleSpeak = useCallback((lang) => {
     if (!('speechSynthesis' in window)) return;
@@ -111,6 +156,49 @@ export default function SessionResults() {
             <span>🎨</span> MindCanvas
           </div>
         </motion.div>
+
+        {/* Live mode indicator */}
+        {liveMode && (
+          <motion.div
+            style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '12px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', fontSize: '0.875rem', color: '#1D4ED8' }}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <span>🎙️</span>
+            <span><strong>Live Session</strong> — English interpretation auto-played for your clinician.</span>
+          </motion.div>
+        )}
+
+        {/* Connected doctor confirmation banner */}
+        <AnimatePresence>
+          {connectedDoctor && (
+            <motion.div
+              className="sr-connected-banner"
+              initial={{ opacity: 0, y: -12, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -12 }}
+            >
+              <span className="sr-connected-icon">✅</span>
+              <div>
+                <strong>Session sent to {connectedDoctor.name}</strong>
+                <p>
+                  {connectedDoctor.flag} {connectedDoctor.country} · {connectedDoctor.org} ·{' '}
+                  <span className="sr-connected-langs">{connectedDoctor.languages.join(', ')}</span>
+                </p>
+                <p className="sr-connected-eta">
+                  Expect a secure message within 24 hours. This consultation is {connectedDoctor.freeLabel.toLowerCase()}.
+                </p>
+              </div>
+              <button
+                className="sr-connected-resend"
+                onClick={() => setShowDoctorSelector(true)}
+                title="Send to a different doctor"
+              >
+                Change
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Instant feedback hero */}
         <motion.div
@@ -279,24 +367,24 @@ export default function SessionResults() {
           <button className="btn btn-primary btn-lg" onClick={() => navigate('/dashboard')}>
             ← Back to Dashboard
           </button>
+
+          {/* Doctor connect button — Uber-style trigger */}
           <button
-            className={`btn ${shared ? 'btn-ghost' : 'btn-secondary'}`}
-            onClick={handleShare}
-            disabled={shared}
+            className="btn btn-secondary sr-send-doctor-btn"
+            onClick={() => setShowDoctorSelector(true)}
           >
-            {shared ? 'Shared with Doctor' : 'Share with My Doctor'}
+            {connectedDoctor
+              ? `Connected: ${connectedDoctor.name.split(' ').slice(-1)[0]} ✓`
+              : shared
+                ? 'Send to Another Doctor'
+                : 'Send to a Doctor 🌏'}
           </button>
+
           <button className="btn btn-outline" onClick={() => handleSpeak(voiceLang)}>
             Listen Again
           </button>
           <button className="btn btn-secondary" onClick={handleDownloadPDF}>
             Download Clinical PDF
-          </button>
-          <button className="btn btn-outline" onClick={() => navigate('/insurance', { state: { result } })}>
-            Fill Insurance Form
-          </button>
-          <button className="btn btn-ghost" onClick={() => navigate('/clinician')}>
-            Clinician View
           </button>
         </motion.div>
 
@@ -304,6 +392,17 @@ export default function SessionResults() {
           Demo only — Not a medical diagnosis. Results should be reviewed by a licensed clinician.
         </p>
       </div>
+
+      {/* Doctor Selector bottom sheet */}
+      <AnimatePresence>
+        {showDoctorSelector && (
+          <DoctorSelector
+            stressScore={score}
+            onClose={() => setShowDoctorSelector(false)}
+            onConnect={handleConnectDoctor}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,0 +1,16 @@
+.progressive-text {
+  white-space: pre-wrap;
+}
+
+.progressive-cursor {
+  display: inline-block;
+  animation: cursorBlink 0.8s step-end infinite;
+  color: var(--peach);
+  font-weight: 300;
+  margin-left: 1px;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}

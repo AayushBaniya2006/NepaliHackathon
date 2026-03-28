@@ -5,23 +5,39 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:all": "concurrently \"vite\" \"node --watch server/index.js\"",
+    "dev:server": "node --watch server/index.js",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node server/index.js"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.34",
+    "better-sqlite3": "^12.8.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.3.1",
     "framer-motion": "^12.38.0",
+    "helmet": "^8.1.0",
+    "i18next": "^26.0.1",
+    "i18next-browser-languagedetector": "^8.2.1",
+    "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "react-router-dom": "^7.13.2"
+    "react-i18next": "^17.0.1",
+    "react-router-dom": "^7.13.2",
+    "uuid": "^13.0.0",
+    "ws": "^8.20.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
     "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",

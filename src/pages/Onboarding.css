@@ -1,50 +1,36 @@
-/* ===== Onboarding — Bold Tech ===== */
 .onboarding {
   min-height: 100vh;
+  width: 100vw;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-secondary);
-  padding: var(--space-xl);
+  /* Use the colorful illustrative SVG as background */
+  background-image: url('/Untitled design (3)/Feelings Quiz Presentation in Colorful Illustrative Style.svg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  padding: 40px 20px;
   position: relative;
   overflow: hidden;
 }
 
-.onboarding-bg {
+.onboarding::before {
+  content: '';
   position: absolute;
   inset: 0;
+  background: rgba(0, 0, 0, 0.1); /* Subtle dark overlay to make white components pop */
   pointer-events: none;
 }
 
-.onboarding-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-}
-
-.onboarding-orb-1 {
-  width: 500px;
-  height: 500px;
-  background: var(--teal-200);
-  opacity: 0.35;
-  top: -20%;
-  right: -10%;
-}
-
-.onboarding-orb-2 {
-  width: 400px;
-  height: 400px;
-  background: var(--sky-100);
-  opacity: 0.45;
-  bottom: -15%;
-  left: -10%;
-}
+/* BG Orbs removed as we are using a custom SVG background */
 
 .onboarding-container {
-  max-width: 540px;
+  max-width: 800px;
   width: 100%;
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Progress */
@@ -65,31 +51,68 @@
 
 .progress-fill {
   height: 100%;
-  background: var(--teal-500);
+  background: #FFF;
   border-radius: var(--radius-full);
   transition: width 0.5s var(--ease-spring);
 }
 
 .progress-label {
   font-size: 0.82rem;
-  color: var(--text-muted);
-  font-weight: 500;
+  color: #FFF;
+  font-weight: 600;
   white-space: nowrap;
 }
 
 /* Step */
 .onboarding-step {
-  background: var(--bg-primary);
-  border-radius: var(--radius-2xl);
-  padding: var(--space-2xl);
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--gray-200);
+  background: #FFF;
+  border-radius: 40px; /* Extra rounded */
+  padding: 40px;
+  box-shadow: none;
+  border: none;
+  width: 100%;
+  min-height: 450px; /* Reduced height */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .step-header {
   text-align: center;
-  margin-bottom: var(--space-2xl);
+  margin-bottom: var(--space-xl);
 }
+
+.step-layout-split {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 40px;
+  align-items: center;
+  text-align: left;
+}
+
+.step-layout-split .step-header {
+  text-align: left;
+  margin-bottom: 0;
+}
+
+.step-layout-split .step-illustration {
+  margin: 0 0 20px 0;
+}
+
+.step-illustration img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.step-illustration {
+  width: 100%;
+  max-width: 180px; /* Scaled back up slightly for better presence */
+  margin: 0 auto 15px;
+  display: flex;
+  justify-content: center;
+}
+
 
 .step-icon-large {
   font-size: 3rem;
@@ -121,43 +144,43 @@
   align-items: flex-start;
   gap: var(--space-md);
   padding: var(--space-lg);
-  background: var(--gray-50);
-  border: 2px solid var(--gray-200);
-  border-radius: var(--radius-xl);
+  background: #F9FAFB;
+  border: 2px solid #F3F4F6;
+  border-radius: 20px;
   cursor: pointer;
   text-align: left;
-  transition: var(--transition-fast);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .consent-item:hover {
-  border-color: var(--primary);
-  background: var(--teal-50);
+  border-color: #000;
+  transform: translateY(-2);
 }
 
 .consent-checked {
-  border-color: var(--primary);
-  background: var(--teal-50);
+  border-color: #000;
+  background: #FFF;
 }
 
 .consent-checkbox {
   width: 24px;
   height: 24px;
   min-width: 24px;
-  border: 2px solid var(--gray-300);
-  border-radius: var(--radius-sm);
+  border: 2px solid #E5E7EB;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.82rem;
   font-weight: 700;
   color: white;
-  transition: var(--transition-fast);
+  transition: all 0.2s;
   margin-top: 2px;
 }
 
 .consent-checkbox.checked {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: #000;
+  border-color: #000;
 }
 
 .consent-text {
@@ -187,7 +210,8 @@
 .profile-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xl);
+  gap: var(--space-md);
+  margin-top: 20px;
 }
 
 .profile-input {
@@ -200,10 +224,10 @@
 }
 
 .preview-card {
-  background: var(--teal-50);
-  border: 1px solid var(--teal-100);
-  border-radius: var(--radius-xl);
-  padding: var(--space-xl);
+  background: #F9FAFB;
+  border: 2px solid #F3F4F6;
+  border-radius: 30px;
+  padding: 30px;
   text-align: center;
 }
 
@@ -248,11 +272,47 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: var(--space-xl);
+  margin-top: 30px;
+  width: 100%;
 }
+
 
 .onboarding-actions .btn-primary {
   margin-left: auto;
+  border-radius: 30px;
+  padding: 16px 36px;
+  background: #000; /* SOLID BLACK as requested */
+  color: #FFF;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.onboarding-actions .btn-primary:hover {
+  background: #222;
+  transform: translateY(-2px);
+}
+
+.onboarding-actions .btn-ghost {
+  color: #FFF;
+  font-weight: 600;
+}
+
+@media (max-width: 800px) {
+  .step-layout-split {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .step-layout-split .step-header {
+    text-align: center;
+  }
+  .step-layout-split .step-illustration {
+    margin: 0 auto 20px;
+  }
+  .onboarding-step {
+    padding: 30px 20px;
+    min-height: auto;
+  }
 }
 
 /* Camera Preview (Step 2) */
@@ -416,6 +476,13 @@
   font-size: 0.8rem;
   color: var(--coral-500, #f97316);
   font-style: italic;
+}
+
+.calibration-skip {
+  margin-top: 1.25rem;
+  width: 100%;
+  max-width: 320px;
+  align-self: center;
 }
 
 .calibration-complete {

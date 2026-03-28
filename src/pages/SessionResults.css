@@ -223,7 +223,7 @@
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--teal-600);
+  color: var(--peach);
   margin-bottom: var(--space-md);
   font-weight: 700;
 }
@@ -233,7 +233,7 @@
   font-style: italic;
   color: var(--text-primary);
   line-height: 1.65;
-  border-left: 4px solid var(--teal-500);
+  border-left: 4px solid var(--peach);
   padding-left: var(--space-lg);
   font-family: var(--font-display);
   font-weight: 500;
@@ -326,6 +326,76 @@
 .sr-lang-active {
   border-color: var(--teal-500, #14b8a6);
   color: var(--teal-500, #14b8a6);
+}
+
+/* Connected doctor confirmation banner */
+.sr-connected-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  background: linear-gradient(135deg, var(--teal-50), rgba(14, 165, 233, 0.05));
+  border: 1.5px solid var(--teal-200);
+  border-radius: var(--radius-xl);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+.sr-connected-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.sr-connected-banner strong {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.sr-connected-banner p {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.sr-connected-langs {
+  color: var(--violet-500);
+  font-weight: 600;
+}
+
+.sr-connected-eta {
+  color: var(--teal-700) !important;
+  font-weight: 600 !important;
+}
+
+.sr-connected-resend {
+  margin-left: auto;
+  flex-shrink: 0;
+  background: none;
+  border: 1.5px solid var(--teal-300);
+  border-radius: var(--radius-full);
+  padding: 5px 16px;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--teal-700);
+  cursor: pointer;
+  transition: background 0.15s;
+  align-self: center;
+}
+
+.sr-connected-resend:hover {
+  background: var(--teal-50);
+}
+
+/* Doctor connect button styling */
+.sr-send-doctor-btn {
+  position: relative;
 }
 
 /* Crisis Banner */

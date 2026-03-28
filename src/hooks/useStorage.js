@@ -50,7 +50,8 @@ export function useStorage() {
 
   const saveSession = useCallback((session) => {
     setSessionsState(prev => {
-      const updated = [...prev, { ...session, id: Date.now(), timestamp: new Date().toISOString() }];
+      const id = session.id != null ? session.id : Date.now();
+      const updated = [...prev, { ...session, id, timestamp: session.timestamp ?? new Date().toISOString() }];
       safeSet(STORAGE_KEYS.SESSIONS, updated);
       return updated;
     });

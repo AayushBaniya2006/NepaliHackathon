@@ -1,228 +1,789 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 import { useStorage } from '../hooks/useStorage';
+import heroBg from '../assets/hero-bg.png';
+import { IntegrationShowcase } from '../components/IntegrationShowcase';
+import '../components/IntegrationShowcase.css';
 import './Landing.css';
 
-const STATS = [
-  { value: '10M+', label: 'Nonverbal Americans underdiagnosed', icon: '🧠' },
-  { value: '2×', label: 'Higher depression in disabled adults', icon: '📊' },
-  { value: '60%', label: 'Appeal win rate with evidence', icon: '⚖️' },
-  { value: '0 words', label: 'Needed — just webcam gestures', icon: '📷' },
+/* ---------- Data ---------- */
+const METRICS = [
+  { value: 85, suffix: '%', label: 'Higher denial rate for behavioral health vs medical claims' },
+  { value: 60, suffix: '%+', label: 'Mental health denials citing "medical necessity"' },
+  { value: 47, suffix: '%', label: 'Of immigrants cite language as a major healthcare barrier' },
+  { value: 0, suffix: ' words', label: 'Required from the patient in MindHaven' },
 ];
 
 const STEPS = [
-  { num: 1, title: 'Gesture Draw', desc: 'Point your finger at the webcam to draw. No mouse, no keyboard needed.', icon: '☝️' },
-  { num: 2, title: 'AI Analysis', desc: 'AI detects clinical stress patterns and scores emotional state in real-time.', icon: '🔬' },
-  { num: 3, title: 'EHR Export', desc: 'Auto-generate FHIR-compliant clinical reports for any provider.', icon: '📋' },
-  { num: 4, title: 'Reclaimant', desc: 'Auto-appeal denied claims using 15 years of legal precedents.', icon: '⚖️' },
+  {
+    num: '01',
+    title: 'Draw',
+    body: "Point your index finger. Move it across the screen. That's all. No keyboard. No words. No instructions needed.",
+  },
+  {
+    num: '02',
+    title: 'Analyzed',
+    body: 'AI reads your drawing and your facial expressions simultaneously. Emotion surfaces without a single sentence.',
+  },
+  {
+    num: '03',
+    title: 'Heard',
+    body: 'A voice speaks the interpretation back to you in your language. Your clinician receives the clinical picture.',
+  },
 ];
 
-export default function Landing() {
-  const navigate = useNavigate();
-  const { isOnboarded, profile } = useStorage();
-  const [hoveredRole, setHoveredRole] = useState(null);
+const PLATFORM_ROWS = [
+  {
+    tag: 'EXPRESSION',
+    title: 'Gesture Drawing',
+    body: 'Draw with your hand in front of the camera. Index finger draws. Pinch erases. Open hand submits. No hardware needed beyond a webcam.',
+    right: { type: 'stat', text: '9 gestures. Zero barriers.' },
+  },
+  {
+    tag: 'UNDERSTANDING',
+    title: 'AI Voice Interpretation',
+    body: 'When you finish drawing, AI speaks back to you in your language. Nepali. Hindi. Arabic. Korean. 15 languages. Your words, finally.',
+    right: { type: 'pills', langs: ['\u0928\u0947\u092A\u093E\u0932\u0940', '\u0939\u093F\u0928\u094D\u0926\u0940', '\uD55C\uAD6D\uC5B4', '\u0627\u0644\u0639\u0631\u0628\u064A\u0629', '\u0E44\u0E17\u0E22', 'Espa\u00F1ol'] },
+  },
+  {
+    tag: 'PROGRESS',
+    title: 'Pattern Tracking',
+    body: "Every session builds a picture over time. Your clinician sees what you've been carrying \u2014 without you having to explain it twice.",
+    right: { type: 'stat', text: 'Sessions build. Patterns surface.' },
+  },
+];
 
-  const handleRoleSelect = (role) => {
-    if (isOnboarded() && profile) {
-      navigate('/dashboard');
-    } else {
-      navigate('/onboarding', { state: { role } });
-    }
-  };
+const HUMAN_STATS = [
+  { value: '1 in 5', desc: 'adults experience mental illness. Most never get help.' },
+  { value: '47%', desc: 'of immigrants report language as a barrier to mental healthcare.' },
+  { value: '0', desc: 'words required from a MindCanvas user.' },
+];
 
-  const handleReturningUser = () => {
-    if (isOnboarded()) {
-      navigate('/dashboard');
+const NAV_LINKS = [
+  { label: 'How It Works', target: 'how-it-works' },
+  { label: 'Platform', target: 'platform' },
+];
+
+/* ---------- Animated Counter ---------- */
+function AnimatedCounter({ value, suffix, duration = 1200 }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-100px' });
+
+  useEffect(() => {
+    if (!inView) return;
+    const start = performance.now();
+    const isFloat = value % 1 !== 0;
+
+    function step(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = eased * value;
+      setCount(isFloat ? parseFloat(current.toFixed(1)) : Math.round(current));
+      if (progress < 1) requestAnimationFrame(step);
     }
-  };
+
+    requestAnimationFrame(step);
+  }, [inView, value, duration]);
 
   return (
-    <div className="landing">
-      <section className="hero">
-        <div className="hero-bg">
-          <div className="hero-orb hero-orb-1" />
-          <div className="hero-orb hero-orb-2" />
-          <div className="hero-orb hero-orb-3" />
+    <span ref={ref}>
+      {count}{suffix}
+    </span>
+  );
+}
+
+/* ---------- Smooth Scroll ---------- */
+function scrollTo(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ---------- Animation Variants ---------- */
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const stagger = {
+  visible: {
+    transition: { staggerChildren: 0.08 },
+  },
+};
+
+const metricsStagger = {
+  visible: {
+    transition: { staggerChildren: 0.15 },
+  },
+};
+
+/* ---------- Auth Check ---------- */
+function checkAuthToken() {
+  try {
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('session_token');
+    return !!token;
+  } catch {
+    return false;
+  }
+}
+
+/* ---------- Component ---------- */
+export default function Landing() {
+  const navigate = useNavigate();
+  const { isOnboarded } = useStorage();
+  const [navScrolled, setNavScrolled] = useState(false);
+  const [liveCount, setLiveCount] = useState(null);
+  const isReturningUser = checkAuthToken();
+
+  useEffect(() => {
+    function onScroll() {
+      setNavScrolled(window.scrollY > 50);
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  /* Live session counter */
+  useEffect(() => {
+    let timer;
+    async function fetchLive() {
+      try {
+        const res = await fetch('/api/metrics/live');
+        const data = await res.json();
+        const count = data.active_sessions;
+        setLiveCount(count > 0 ? count : null);
+      } catch {
+        /* keep previous value or null */
+      }
+    }
+    fetchLive();
+    timer = setInterval(fetchLive, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="landing-dark">
+      {/* ===== NAVIGATION ===== */}
+      <nav className={`ld-nav ${navScrolled ? 'ld-nav--scrolled' : ''}`}>
+        <div className="ld-nav-inner">
+          <a className="ld-nav-logo" href="/" onClick={e => { e.preventDefault(); scrollTo('hero'); }}>
+            mindhaven
+          </a>
+
+          <ul className="ld-nav-links">
+            {NAV_LINKS.map(link => (
+              <li key={link.target}>
+                <button
+                  className="ld-nav-link"
+                  onClick={() => scrollTo(link.target)}
+                >
+                  {link.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          <div className="ld-nav-cta">
+            <button
+              className="ld-btn ld-btn-primary"
+              onClick={() => navigate('/onboarding')}
+            >
+              Get Started
+            </button>
+          </div>
         </div>
+      </nav>
 
-        <div className="hero-content">
+      {/* ===== HERO ===== */}
+      <section className="ld-hero" id="hero">
+        <div className="ld-hero-content">
+          <div className="ld-hero-text">
+            <motion.h1
+              className="ld-hero-title"
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4, duration: 0.8 }}
+            >
+              Your Mind Matters.<br />
+              Let’s Heal, Together.
+            </motion.h1>
+
+            <motion.p
+              className="ld-hero-subtitle"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6, duration: 0.8 }}
+            >
+              Turn 5-minute drawing sessions into clinical evidence. No words. No keyboard. Just you being understood.
+            </motion.p>
+
+            <motion.div
+              className="ld-hero-actions"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8, duration: 0.8 }}
+            >
+              <button
+                className="ld-btn ld-btn-primary"
+                onClick={() => navigate('/onboarding')}
+              >
+                Book an Appointment
+              </button>
+            </motion.div>
+          </div>
+
           <motion.div
-            className="hero-badge"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <span className="hero-badge-dot" />
-            Mental Health Accessibility Hackathon
-          </motion.div>
-
-          <motion.h1
-            className="hero-title"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.8 }}
-          >
-            Draw Your Feelings,
-            <br />
-            <span className="hero-title-accent">Get Help That Works</span>
-          </motion.h1>
-
-          <motion.p
-            className="hero-subtitle"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            className="ld-hero-illustration"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.5, duration: 0.8 }}
           >
-            Point your finger at the webcam to draw. Sign language to speak.
-            No words needed — just gestures that become clinical evidence.
-          </motion.p>
-
-          <motion.div
-            className="role-selection"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7, duration: 0.8 }}
-          >
-            <p className="role-prompt">I am...</p>
-            <div className="role-buttons">
-              <button
-                className={`role-card ${hoveredRole === 'patient' ? 'role-card-active' : ''}`}
-                onClick={() => handleRoleSelect('patient')}
-                onMouseEnter={() => setHoveredRole('patient')}
-                onMouseLeave={() => setHoveredRole(null)}
-              >
-                <span className="role-icon">✋</span>
-                <span className="role-label">The Patient</span>
-                <span className="role-desc">I want to express myself through drawing</span>
-              </button>
-
-              <button
-                className={`role-card ${hoveredRole === 'caregiver' ? 'role-card-active' : ''}`}
-                onClick={() => handleRoleSelect('caregiver')}
-                onMouseEnter={() => setHoveredRole('caregiver')}
-                onMouseLeave={() => setHoveredRole(null)}
-              >
-                <span className="role-icon">🛡️</span>
-                <span className="role-label">A Caregiver</span>
-                <span className="role-desc">I'm helping someone who can't reliably speak</span>
-              </button>
-            </div>
+            <img src="/Untitled design (3)/Feelings Quiz Presentation in Colorful Illustrative Style.svg" alt="Mindhaven Illustration" />
           </motion.div>
-
-          {isOnboarded() && (
-            <motion.button
-              className="btn btn-outline returning-btn"
-              onClick={handleReturningUser}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1 }}
-            >
-              Welcome back — Go to Dashboard
-            </motion.button>
-          )}
         </div>
       </section>
 
-      <motion.section
-        className="stats-bar"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.9 }}
-      >
-        <div className="container">
-          <div className="stats-grid">
-            {STATS.map((stat, i) => (
-              <motion.div
-                key={i}
-                className="stat-item"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1 + i * 0.1 }}
-              >
-                <span className="stat-icon">{stat.icon}</span>
-                <span className="stat-value">{stat.value}</span>
-                <span className="stat-label">{stat.label}</span>
-              </motion.div>
-            ))}
+      {/* ===== PROBLEM SECTION: What we are solving ===== */}
+      <section className="ld-problem-section">
+        <div className="ld-container">
+          <div className="section-header-centered">
+            <span className="section-tag">THE PROBLEM</span>
+            <h2>Mental health is failing because<br />communication is broken.</h2>
+            <p>Traditional therapy relies on words. But for nonverbal patients, neurodivergent individuals, or those with language barriers, the right words don't exist.</p>
+          </div>
+
+          <div className="problem-grid">
+            <div className="problem-card">
+              <img src="/Untitled design (3)/rainbow-mental-health.svg" alt="Language" className="problem-icon-img" />
+              <h3>Language Barriers</h3>
+              <p>Research indicates that <strong>47% of immigrants</strong> report language as a major barrier to mental healthcare. Translation is slow, and clinical terms lose cultural nuance.<sup>1</sup></p>
+            </div>
+            <div className="problem-card">
+              <img src="/Untitled design (3)/sporty-brain.svg" alt="Insurance" className="problem-icon-img" />
+              <h3>Insurance Denials</h3>
+              <p>Following parity reports, behavioral health claims are denied at rates <strong>85% higher</strong> than medical claims, with over 60% rejected for "lack of medical necessity."<sup>2</sup></p>
+            </div>
+            <div className="problem-card">
+              <img src="/Untitled design (3)/love-brain.svg" alt="Stigma" className="problem-icon-img" />
+              <h3>Stigma & Burnout</h3>
+              <p>Stigma prevents early support in culturally conservative communities. Meanwhile, students & professionals face unprecedented, silent occupational burnout.<sup>3</sup></p>
+            </div>
+          </div>
+
+          <div className="citations-text">
+            <p><sup>1</sup> NIMHD / Healthcare utilization disparity studies.</p>
+            <p><sup>2</sup> Counterforce Health / APA MHPAEA parity violation reports.</p>
+            <p><sup>3</sup> MDPI / Psychology Today research on cultural stigma.</p>
           </div>
         </div>
-      </motion.section>
+      </section>
 
-      <section className="how-section">
-        <div className="container">
-          <motion.h2
-            className="section-heading"
+      {/* ===== MISSION STATEMENTS ===== */}
+      <section className="ld-mission-section">
+        <div className="ld-container">
+          <div className="section-header-centered" style={{ marginBottom: '60px' }}>
+            <span className="section-tag">OUR SOLUTIONS</span>
+            <h2>Problems, and more problems?</h2>
+            <p>We are breaking down the biggest barriers in global mental healthcare with our B2B platform.</p>
+          </div>
+          <div className="mission-statements-grid">
+            <div className="mission-statement-card">
+              <span className="mission-number">Statement 1</span>
+              <h3>Reducing Stress & Burnout</h3>
+              <p>Students and professionals feel a lot of stress from work and school. But going to therapy and talking about it is exhausting. MindHaven makes it simple. You just take 5 minutes to draw how you feel—no words needed. You can also send positive notes or photos to a friendly public "Wellness Wall." It's a safe, easy way to release stress without looking at a scary, confusing clinical dashboard.</p>
+            </div>
+            <div className="mission-statement-card">
+              <span className="mission-number">Statement 2</span>
+              <h3>Breaking Stigma & Borders</h3>
+              <p>In places like Nepal, people are afraid to seek help because of judgment—even from local doctors. MindHaven acts like a digital "free health camp" for immigrants and disabled users. A person can draw their feelings, and our ElevenLabs AI translates the session so a volunteer doctor in the US or India can help them entirely in their own language.</p>
+              <br />
+              <p><strong>For Doctors & Clinics:</strong> Insurance companies reject a lot of mental health claims. MindHaven fixes this by automatically creating the exact reports doctors need to get insurance approved, saving them hours of paperwork.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== HOW IT WORKS: DUAL PERSPECTIVE ===== */}
+      <section className="ld-how-it-works-dual" id="how-it-works">
+        <div className="ld-container">
+          <div className="section-header-centered">
+            <span className="section-tag">HOW IT WORKS</span>
+            <h2>Bridging the gap between<br />experience and diagnosis.</h2>
+          </div>
+
+          <div className="dual-perspective-grid">
+            <div className="perspective-card patient-perspective">
+              <div className="perspective-header">
+                <img src="/Untitled design (3)/cute-brain.svg" alt="Patient" className="perspective-icon-img" />
+                <h3>For the Patient</h3>
+              </div>
+              <ul className="perspective-list">
+                <li>
+                  <strong>1. Express Without Words:</strong> Just drag your finger across the camera. No keyboard, no talking required.
+                </li>
+                <li>
+                  <strong>2. Overcome Stigma:</strong> Draw in complete privacy. AI analyzes your kinetic movement and facial micro-expressions.
+                </li>
+                <li>
+                  <strong>3. Hear It Back:</strong> The AI speaks your emotional state back to you in your native language (15+ languages), validating your feelings.
+                </li>
+              </ul>
+              <div className="helps-highlight">
+                <strong>How this helps:</strong> Lowers the barrier to entry for culturally conservative communities where talking to a therapist is taboo. It provides an immediate release for burnt-out students and professionals who lack the energy to explain their stress.
+              </div>
+            </div>
+
+            <div className="perspective-card clinic-perspective">
+              <div className="perspective-header">
+                <img src="/Untitled design (3)/brain-and-flowers.svg" alt="Clinic" className="perspective-icon-img" />
+                <h3>For the Clinic & Provider</h3>
+              </div>
+              <ul className="perspective-list">
+                <li>
+                  <strong>1. Objective Data Capture:</strong> Stop relying entirely on subjective self-reporting. Capture quantifiable kinetic and emotional data.
+                </li>
+                <li>
+                  <strong>2. Automated Charting:</strong> Every session automatically generates clinical documentation mapped to diagnostic criteria.
+                </li>
+                <li>
+                  <strong>3. Defeat Insurance Denials:</strong> Provide the concrete "medical necessity" proof needed to fight the 85% higher denial rate for behavioral health claims.
+                </li>
+              </ul>
+              <div className="helps-highlight">
+                <strong>How this helps:</strong> Gives clinicians the hard evidence needed to secure insurance approvals. It reduces massive administrative burdens, allowing providers to focus on actual patient care.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== AUDIENCE SECTION: Who this is for ===== */}
+      <section className="ld-audience-section">
+        <div className="ld-container">
+          <div className="audience-layout">
+            <div className="audience-text">
+              <span className="section-tag">AUDIENCE</span>
+              <h2>Built for the people<br />who fall through the cracks.</h2>
+              <div className="audience-list">
+                <div className="audience-item">
+                  <strong>🏠 Families & Caregivers</strong>
+                  <p>Understand the emotional state of non-communicative loved ones without the guesswork.</p>
+                </div>
+                <div className="audience-item">
+                  <strong>🏥 Clinical Facilities</strong>
+                  <p>Empower your speech therapists and social workers with AI-driven emotional diagnostic data.</p>
+                </div>
+                <div className="audience-item">
+                  <strong>🏢 Modern HR Teams</strong>
+                  <p>Support diverse, global workforces who need mental health support in their own cultural context.</p>
+                </div>
+              </div>
+            </div>
+            <div className="audience-visual">
+              <img src="/Untitled design (3)/cute-brain.svg" alt="Supportive brain" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== TOOLKIT SECTION (Illustrative Cards) ===== */}
+      <section className="ld-toolkit-section">
+        <div className="ld-container">
+          <div className="ld-toolkit-header">
+            <span className="section-tag">THE TOOLKIT</span>
+            <h2>Your Mental Wellness<br />Toolkit, Always Within Reach</h2>
+            <p>Therapy is just the beginning; we give you everything you need to keep moving forward.</p>
+          </div>
+
+          <div className="ld-toolkit-grid">
+            <div className="toolkit-card">
+              <div className="toolkit-img">
+                <img src="/Untitled design (3)/healthy-brain-boy.svg" alt="Sessions" />
+              </div>
+              <h3>Live Video & Chat Sessions</h3>
+              <p>Connect at your pace, anytime, with our specialist network.</p>
+            </div>
+            <div className="toolkit-card">
+              <div className="toolkit-img">
+                <img src="/Untitled design (3)/sporty-brain.svg" alt="Tracking" />
+              </div>
+              <h3>Mood & Progress Tracking</h3>
+              <p>See how far you've come with real-time analytics.</p>
+            </div>
+            <div className="toolkit-card">
+              <div className="toolkit-img">
+                <img src="/Untitled design (3)/brain-and-flowers.svg" alt="Exercises" />
+              </div>
+              <h3>Meditation & Exercises</h3>
+              <p>For stress, sleep, and emotional balance.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== INTEGRATION SHOWCASE: PEO & HR TOOLS ===== */}
+      <IntegrationShowcase
+        title="Connect your ~favorite~ tools."
+        subtitle="MindHaven connects seamlessly with your existing HR and communication stack to provide frictionless mental health benefits."
+        illustrationSrc="/Untitled design (3)/sporty-brain.svg"
+        illustrationAlt="Connectivity illustration"
+        integrations={[
+          {
+            name: "Gusto",
+            description: "Sync payroll and employee benefits automatically.",
+            iconSrc: "https://cdn.worldvectorlogo.com/logos/gusto-1.svg"
+          },
+          {
+            name: "Rippling",
+            description: "Automate onboarding and clinical access controls.",
+            iconSrc: "https://www.vectorlogo.zone/logos/rippling/rippling-icon.svg"
+          },
+          {
+            name: "ADP",
+            description: "Enterprise-grade workforce management sync.",
+            iconSrc: "https://www.vectorlogo.zone/logos/adp/adp-icon.svg"
+          },
+          {
+            name: "Gmail / Workspace",
+            description: "Direct alerts and session summaries via email.",
+            iconSrc: "https://www.vectorlogo.zone/logos/google_gmail/google_gmail-icon.svg"
+          }
+        ]}
+      />
+
+      {/* ===== HOW IT WORKS / THE PROCESS (light) ===== */}
+      <section className="ld-process-section" id="the-process">
+        <div className="ld-container">
+          <motion.div
+            className="ld-process-layout"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={stagger}
+          >
+            {/* Left: Steps */}
+            <div className="ld-process-left">
+              <motion.p className="ld-section-label" variants={fadeUp} transition={{ duration: 0.4 }}>
+                THE PROCESS
+              </motion.p>
+              <motion.h2 className="ld-process-headline" variants={fadeUp} transition={{ duration: 0.5 }}>
+                <span>One drawing.</span>
+                <span>A complete clinical picture.</span>
+              </motion.h2>
+
+              <div className="ld-process-steps">
+                {STEPS.map((step, i) => (
+                  <motion.div
+                    className="ld-process-step"
+                    key={step.num}
+                    variants={fadeUp}
+                    transition={{ duration: 0.4 }}
+                  >
+                    <div className="ld-process-step-number">{step.num}</div>
+                    <div className="ld-process-step-connector">
+                      {i < STEPS.length - 1 && <span className="ld-process-step-line" />}
+                    </div>
+                    <div className="ld-process-step-content">
+                      <h3>{step.title}</h3>
+                      <p>{step.body}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Product screenshot placeholder */}
+            <motion.div
+              className="ld-process-visual"
+              variants={fadeUp}
+              transition={{ duration: 0.6 }}
+            >
+              <p className="ld-process-shot-label">LIVE SESSION</p>
+              <div className="ld-process-shot-frame">
+                <div className="ld-process-shot-header">
+                  <span>MINDCANVAS</span>
+                  <span>SESSION ACTIVE</span>
+                </div>
+                <div className="ld-process-shot-body">
+                  <div className="ld-process-shot-canvas">
+                    <div className="ld-process-shot-grid" />
+                    <div className="ld-process-shot-stroke ld-process-shot-stroke--one" />
+                    <div className="ld-process-shot-stroke ld-process-shot-stroke--two" />
+                    <div className="ld-process-shot-stroke ld-process-shot-stroke--three" />
+                    <div className="ld-process-shot-cursor" />
+                    <span className="ld-process-shot-cursor-label">Drawing</span>
+                  </div>
+                  <div className="ld-process-shot-sidebar">
+                    <span className="ld-process-shot-sidebar-label">DETECTED EMOTION</span>
+                    <div className="ld-process-shot-emotion-row">
+                      <span>Heaviness</span>
+                      <strong>78%</strong>
+                    </div>
+                    <div className="ld-process-shot-emotion-row">
+                      <span>Tension</span>
+                      <strong>62%</strong>
+                    </div>
+                    <div className="ld-process-shot-emotion-row">
+                      <span>Release</span>
+                      <strong>41%</strong>
+                    </div>
+                    <div className="ld-process-shot-wave">
+                      <span /><span /><span /><span /><span /><span />
+                    </div>
+                    <div className="ld-process-shot-voice">
+                      &ldquo;I see weight here. Something you&rsquo;ve been holding for a long time.&rdquo;
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== PLATFORM SPOTLIGHT (dark) ===== */}
+      <section className="ld-platform-section" id="platform">
+        <div className="ld-container">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={stagger}
+          >
+            <motion.p className="ld-section-label" variants={fadeUp} transition={{ duration: 0.4 }}>
+              THE PLATFORM
+            </motion.p>
+            <motion.h2 className="ld-platform-headline" variants={fadeUp} transition={{ duration: 0.5 }}>
+              Draw what you&rsquo;ve never been able to say.
+            </motion.h2>
+            <motion.p className="ld-platform-subheadline" variants={fadeUp} transition={{ duration: 0.5 }}>
+              MindCanvas is for people who fall through the cracks of traditional therapy.
+              People who don&rsquo;t have the words, the language, or the access.
+            </motion.p>
+          </motion.div>
+
+          <motion.div
+            className="ld-platform-rows"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-60px' }}
+            variants={stagger}
+          >
+            {PLATFORM_ROWS.map((row, i) => (
+              <motion.div
+                className="ld-platform-row"
+                key={i}
+                variants={fadeUp}
+                transition={{ duration: 0.4 }}
+              >
+                <div className="ld-platform-row-copy">
+                  <p className="ld-platform-row-label">{row.tag}</p>
+                  <h3>{row.title}</h3>
+                  <p>{row.body}</p>
+                </div>
+                <div className="ld-platform-row-detail">
+                  {row.right.type === 'stat' ? (
+                    <p className="ld-platform-callout">{row.right.text}</p>
+                  ) : (
+                    <div className="ld-platform-pill-wrap">
+                      {row.right.langs.map(lang => (
+                        <span className="ld-platform-pill" key={lang}>{lang}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== HUMAN STORY (light) ===== */}
+      <section className="ld-story-section">
+        <div className="ld-container">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={stagger}
+          >
+            <motion.p className="ld-section-label" variants={fadeUp} transition={{ duration: 0.4 }}>
+              WHY IT EXISTS
+            </motion.p>
+          </motion.div>
+
+          <motion.div
+            className="ld-story-layout"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-60px' }}
+            variants={stagger}
+          >
+            {/* Left: Pull-quote */}
+            <motion.div className="ld-story-left" variants={fadeUp} transition={{ duration: 0.5 }}>
+              <blockquote className="ld-story-quote">
+                <span>Raju is 14. He moved from Kathmandu to Ohio eighteen months ago.</span>
+                <span>He has not spoken to a therapist, because he cannot find the words in English for the heaviness he carries.</span>
+              </blockquote>
+              <p className="ld-story-body">
+                He doesn&rsquo;t need a vocabulary lesson. He needs a way to show what he feels.
+                MindCanvas lets him draw it, and hears it back to him in Nepali.
+              </p>
+            </motion.div>
+
+            {/* Right: Stats */}
+            <motion.div className="ld-story-stats" variants={fadeUp} transition={{ duration: 0.5 }}>
+              {HUMAN_STATS.map((stat, i) => (
+                <div className="ld-story-stat-row" key={i}>
+                  <div className="ld-story-stat-value">{stat.value}</div>
+                  <p className="ld-story-stat-body">{stat.desc}</p>
+                </div>
+              ))}
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== EMPLOYER SECTION ===== */}
+      <section style={{ background: '#F8FAFC', padding: '100px 0' }}>
+        <div className="ld-container">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', alignItems: 'center' }}>
+            {/* Left: copy */}
+            <div>
+              <span className="section-tag">FOR EMPLOYERS</span>
+              <h2 style={{ fontSize: '2.5rem', fontWeight: 800, lineHeight: 1.15, margin: '16px 0 20px', color: '#0F172A' }}>
+                Mental wellness as an<br />employee benefit.
+              </h2>
+              <p style={{ color: '#475569', lineHeight: 1.7, marginBottom: '24px' }}>
+                Give your entire workforce access to MindHaven — nonverbal mental health support in 15 languages — for less than your coffee budget.
+              </p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '24px' }}>
+                <span style={{ fontSize: '3.5rem', fontWeight: 900, color: '#0F172A', lineHeight: 1 }}>$2</span>
+                <span style={{ color: '#64748B', fontSize: '1rem' }}>/employee/month</span>
+              </div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {[
+                  'Unlimited drawing sessions per employee',
+                  'HR dashboard with anonymized team wellness trends',
+                  'FHIR-compliant export for corporate health plans',
+                  'AI insurance appeal engine included',
+                  'Supports 15 languages — no exclusions for global teams',
+                ].map(perk => (
+                  <li key={perk} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#334155', fontSize: '0.95rem' }}>
+                    <span style={{ color: '#22C55E', fontWeight: 700 }}>✓</span> {perk}
+                  </li>
+                ))}
+              </ul>
+              <button
+                className="ld-btn ld-btn-primary"
+                onClick={() => {}}
+                style={{ fontSize: '1rem', padding: '14px 32px' }}
+              >
+                Partner with Us →
+              </button>
+            </div>
+            {/* Right: stat cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {[
+                { value: '$1,685', label: 'Avg. annual productivity loss per employee with untreated mental illness' },
+                { value: '4×', label: 'ROI on every $1 invested in workplace mental health programs' },
+                { value: '76%', label: 'Of employees say mental health support influences where they choose to work' },
+              ].map(stat => (
+                <div key={stat.value} style={{ background: '#fff', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: '20px' }}>
+                  <span style={{ fontSize: '2.2rem', fontWeight: 900, color: '#0F172A', minWidth: '80px' }}>{stat.value}</span>
+                  <p style={{ color: '#475569', fontSize: '0.875rem', lineHeight: 1.5, margin: 0 }}>{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== FINAL CTA / DRAW WHAT YOU THINK (heroBg) ===== */}
+      <section className="ld-hero-footer" style={{ minHeight: '80vh', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div
+          className="ld-hero-bg"
+          style={{ backgroundImage: `url(${heroBg})`, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: 0 }}
+        />
+        <div className="ld-hero-overlay" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1 }} />
+
+        <div className="ld-hero-content" style={{ zIndex: 2, position: 'relative', textAlign: 'center', margin: '0 auto', maxWidth: '800px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <motion.h1
+            className="ld-hero-title"
+            style={{ fontSize: '4rem', color: '#fff', marginBottom: '20px', letterSpacing: '-0.02em', lineHeight: '1.1' }}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
           >
-            From First Drawing to Insurance Payout
-          </motion.h2>
-          <p className="section-subheading">
-            A complete clinical pipeline that turns 5-minute sessions into undeniable evidence.
-          </p>
+            <span className="ld-hero-line1">Draw what you can't say.</span>
+            <br />
+            <span className="ld-hero-line2" style={{ color: 'var(--brand-yellow)' }}>Hear it back.</span>
+          </motion.h1>
 
-          <div className="steps-grid">
-            {STEPS.map((step, i) => (
-              <motion.div
-                key={step.num}
-                className="step-card"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-              >
-                <div className="step-num">{step.num}</div>
-                <span className="step-icon">{step.icon}</span>
-                <h3>{step.title}</h3>
-                <p>{step.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="clinician-cta">
-        <div className="container">
-          <motion.div
-            className="cta-card"
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+          <motion.p
+            className="ld-hero-subtitle"
+            style={{ fontSize: '1.25rem', color: '#CBD5E1', marginBottom: '40px' }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
+            transition={{ delay: 0.2, duration: 0.8 }}
           >
-            <div className="cta-content">
-              <h2>Are you a clinician?</h2>
-              <p>
-                Access the clinician dashboard to review patient sessions,
-                generate EHR notes, and submit insurance claims with AI-powered evidence.
-              </p>
-              <button
-                className="btn btn-lg btn-outline"
-                onClick={() => navigate('/clinician')}
-                style={{ borderColor: 'rgba(255,255,255,0.2)', color: 'white' }}
-              >
-                Open Clinician Dashboard
-              </button>
-            </div>
-            <div className="cta-stats">
-              <div className="cta-stat">
-                <span className="cta-stat-value">$35k</span>
-                <span className="cta-stat-label">Avg. annual recovery per practice</span>
-              </div>
-              <div className="cta-stat">
-                <span className="cta-stat-value">60%</span>
-                <span className="cta-stat-label">Auto-appeal win rate</span>
-              </div>
-            </div>
+            Start your first nonverbal session instantly. No words. No sign-up required.
+          </motion.p>
+
+          <motion.div
+            className="ld-hero-actions"
+            style={{ display: 'flex', justifyContent: 'center' }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4, duration: 0.8 }}
+          >
+            <button
+              className="ld-btn ld-btn-primary"
+              onClick={() => navigate('/onboarding')}
+              style={{ fontSize: '1.2rem', padding: '16px 40px', borderRadius: '50px' }}
+            >
+              Start Drawing
+            </button>
           </motion.div>
         </div>
       </section>
 
-      <footer className="landing-footer">
-        <p>
-          Demo only — Not a medical device. Not HIPAA compliant. Built for hackathon demonstration.
-        </p>
+      {/* ===== FOOTER (ink) ===== */}
+      <footer className="ld-footer">
+        <div className="ld-container">
+          <div className="ld-footer-top">
+            <div className="ld-footer-column">
+              <span className="ld-footer-brand">mindhaven</span>
+              <p className="ld-footer-tagline">Welcome, tips directly to your inbox</p>
+            </div>
+
+            <div className="ld-footer-column ld-footer-links">
+              <div>
+                <strong>LINKS</strong>
+                <button className="ld-footer-link" onClick={() => scrollTo('hero')}>About Us</button>
+                <button className="ld-footer-link" onClick={() => scrollTo('hero')}>Services</button>
+              </div>
+              <div>
+                <strong>LEGAL</strong>
+                <button className="ld-footer-link">Privacy</button>
+                <button className="ld-footer-link">Contact</button>
+              </div>
+            </div>
+          </div>
+
+          <div className="ld-footer-extra">
+            <h1 className="footer-big-brand">mindhaven</h1>
+          </div>
+
+          <div className="ld-footer-bottom">
+            <p>&copy; 2026 mindhaven. All rights reserved.</p>
+          </div>
+        </div>
       </footer>
     </div>
   );

@@ -1,7 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
 
-const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
-
 const VOICES = [
   { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', description: 'Warm & gentle' },
   { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', description: 'Calm & clear' },
@@ -18,64 +16,63 @@ export function useElevenLabs() {
   const audioRef = useRef(null);
   const audioUrlRef = useRef(null);
 
+  const makeRequest = async (url, options, timeoutMs = 30000) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeout);
+      return res;
+    } catch (err) {
+      clearTimeout(timeout);
+      if (err.name === 'AbortError') throw new Error('Request timed out');
+      throw err;
+    }
+  };
+
+  const playAudioBlob = useCallback((blob) => {
+    // Clean up previous audio
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+    }
+
+    const url = URL.createObjectURL(blob);
+    audioUrlRef.current = url;
+
+    const audio = new Audio(url);
+    audio.volume = isMuted ? 0 : volume;
+    audioRef.current = audio;
+
+    audio.onended = () => setIsPlaying(false);
+    audio.onplay = () => setIsPlaying(true);
+
+    return audio.play();
+  }, [volume, isMuted]);
+
   const speak = useCallback(async (text) => {
     setLoading(true);
     setError(null);
 
-    const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
-    if (!apiKey) {
-      // Fallback to browser TTS
-      setLoading(false);
-      browserSpeak(text, volume, isMuted);
-      return;
-    }
-
+    // Try server proxy first
     try {
-      const response = await fetch(`${ELEVENLABS_API_URL}/${selectedVoice.id}`, {
+      const response = await makeRequest('/api/voice/speak', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'xi-api-key': apiKey,
-        },
-        body: JSON.stringify({
-          text,
-          model_id: 'eleven_monolingual_v1',
-          voice_settings: {
-            stability: 0.75,
-            similarity_boost: 0.75,
-            style: 0.5,
-          },
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voiceId: selectedVoice.id }),
       });
-
-      if (!response.ok) throw new Error(`ElevenLabs error: ${response.status}`);
-
-      const blob = await response.blob();
-      
-      // Clean up previous audio
-      if (audioUrlRef.current) {
-        URL.revokeObjectURL(audioUrlRef.current);
+      if (response.ok) {
+        const blob = await response.blob();
+        await playAudioBlob(blob);
+        setLoading(false);
+        return;
       }
-      
-      const url = URL.createObjectURL(blob);
-      audioUrlRef.current = url;
-      
-      const audio = new Audio(url);
-      audio.volume = isMuted ? 0 : volume;
-      audioRef.current = audio;
-
-      audio.onended = () => setIsPlaying(false);
-      audio.onplay = () => setIsPlaying(true);
-
-      await audio.play();
-      setLoading(false);
     } catch (err) {
-      console.error('ElevenLabs error:', err);
+      console.error('Voice proxy unavailable:', err);
       setError('Voice playback failed. Using browser voice.');
       setLoading(false);
       browserSpeak(text, volume, isMuted);
     }
-  }, [selectedVoice, volume, isMuted]);
+  }, [selectedVoice, volume, isMuted, playAudioBlob]);
 
   const replay = useCallback(() => {
     if (audioRef.current) {
