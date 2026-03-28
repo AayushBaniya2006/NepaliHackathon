@@ -1,0 +1,24 @@
+Already in the app (not “remaining”)
+Area	Status
+Webcam drawing, gestures, stamps, smoothing	Built
+AI analysis → SOAP / stress / indicators	Built
+Dashboard, onboarding, clinician dashboard, FHIR-ish export	Built
+Insurance + Reclaimant UI (mock parity / appeals)	Built
+Resource finder + 988 links on that page	Built
+ElevenLabs	Hook exists; wired on older Results.jsx flow — not on main SessionResults after /draw
+Remaining / not built (or only sketched)
+These came from our roadmap and product talks:
+
+Crisis detection from AI — Auto-flag acute distress and surface 988 / Crisis Text in-session or on results (not just on Resource Finder).
+ElevenLabs on the real results path — After a drawing session, SessionResults should play voice (patient language + optional English for doctor), with a language selector.
+Multilingual pipeline — Profile language → Claude outputs patient + English → TTS in chosen language (Nepali, Spanish, etc.).
+“Live session” mode — Patient + doctor on call; English voice to doctor, native text/voice to patient.
+Session replay (doctor) — Replay drawing stroke-by-stroke + facial expression timeline + AI notes for documentation (not implemented).
+Doctor finder — Zip / filters (language, specialty, insurance, VoiceCanvas badge), “Connect” (mock is fine).
+Insurance provider picker (clinician) — Aetna / UHC / etc., insurer-specific copy and Reclaimant hints (mostly generic today).
+Parent / caregiver — Upload photos as prompts on child’s dashboard; optional caregiver view.
+Session trajectory chart — Stress (or mood) over time on dashboard (data may exist in localStorage; chart may be missing or minimal).
+“Share with doctor” — Clear patient path; optionally move insurance/Reclaimant emphasis to clinician-only so the story matches.
+Gesture calibration in onboarding — Guided 1 / 2 / open-hand checks (may be partial).
+PEO / employer integration — Pitch / landing only (no real API).
+requirements.md — Still describes older “VoiceCanvas” canvas flow; not fully synced with MindCanvas routes (/draw, etc.).

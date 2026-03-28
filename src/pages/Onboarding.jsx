@@ -106,7 +106,7 @@ export default function Onboarding() {
 
   const isCaregiver = role === 'caregiver';
 
-  // Camera: acquire stream once, then attach to whichever step's <video> is mounted
+  // Camera: acquire stream once for steps 2–3, attach when <video> mounts
   useEffect(() => {
     if (step < 2 || step > 3) return;
     let cancelled = false;
@@ -126,31 +126,9 @@ export default function Onboarding() {
         } catch {
           setCameraError('Camera access denied. You can still use mouse drawing.');
           return;
-  const isCaregiver = role === 'caregiver';
-
-  // Camera init for step 2
-  useEffect(() => {
-    if (step !== 2) return;
-    if (streamRef.current) return; // already have a stream
-    async function initCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-        });
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.onloadeddata = () => setCameraReady(true);
         }
       }
-
-      const attachToVideo = () => {
-        if (cancelled) return;
-        attachStreamToVideo(videoRef.current);
-        requestAnimationFrame(() => attachStreamToVideo(videoRef.current));
-      };
-
-      attachToVideo();
+      queueMicrotask(() => attachStreamToVideo(videoRef.current));
     }
 
     ensureCamera();
@@ -159,14 +137,13 @@ export default function Onboarding() {
     };
   }, [step, attachStreamToVideo]);
 
-  // Stop camera when leaving step 2
+  // Stop camera when leaving steps 2–3 (not when moving 2 → 3)
   useEffect(() => {
-    if (step !== 2) {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => t.stop());
-        streamRef.current = null;
-        queueMicrotask(() => setCameraReady(false));
-      }
+    if (step >= 2 && step <= 3) return;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+      queueMicrotask(() => setCameraReady(false));
     }
   }, [step]);
 
@@ -404,6 +381,35 @@ export default function Onboarding() {
                         Camera sees: <strong>{gestureLabel(currentGesture)}</strong>
                       </p>
                     )}
+                  </div>
+                  <div className="calibration-gestures">
+                    {CALIBRATION_GESTURES.map((g, i) => {
+                      const done = Boolean(calibrated[g.id]);
+                      const active = i === calibrationIndex && !done;
+                      return (
+                        <div
+                          key={g.id}
+                          className={`calibration-item ${active ? 'calibration-active' : ''} ${done ? 'calibration-done' : ''}`}
+                        >
+                          <span className="calibration-icon">{g.icon}</span>
+                          <div>
+                            <div className="calibration-label">{g.label}</div>
+                            {active ? <div className="calibration-hint">{g.hint}</div> : null}
+                          </div>
+                          {done ? <span aria-hidden>✓</span> : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {calibrationIndex >= CALIBRATION_GESTURES.length ? (
+                    <p className="calibration-complete">All set — hand tracking is ready.</p>
+                  ) : null}
+                  {calibrationTimeout && calibrationIndex < CALIBRATION_GESTURES.length ? (
+                    <p className="calibration-hint calibration-skip">Take your time — try the gesture when ready.</p>
+                  ) : null}
+                </div>
+              )}
+
               <div className="step-layout-split">
                 <div className="profile-main">
                   <div className="step-header">
