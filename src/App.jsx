@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import GlobalNav from './components/GlobalNav';
 import Landing from './pages/Landing';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
@@ -13,6 +14,8 @@ function AnimatedRoutes() {
   const location = useLocation();
 
   return (
+    <>
+    <GlobalNav />
     <AnimatePresence mode="wait">
       <motion.div
         key={location.pathname}
@@ -38,6 +41,7 @@ function AnimatedRoutes() {
         </Routes>
       </motion.div>
     </AnimatePresence>
+    </>
   );
 }
 
