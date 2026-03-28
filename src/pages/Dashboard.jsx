@@ -15,50 +15,77 @@ const MOOD_EMOJIS = [
   { emoji: '😰', label: 'Anxious', color: 'var(--rose-500)' },
   { emoji: '😶', label: 'Numb', color: 'var(--gray-400)' },
 ];
+const MOOD_STORAGE_KEY = 'mc_last_mood';
 
-const PROMPT_STYLES = [
-  { bg: 'linear-gradient(135deg, var(--coral-50), var(--coral-100))', border: 'var(--coral-200)', accent: 'var(--coral-500)', tag: 'badge-yellow' },
-  { bg: 'linear-gradient(135deg, var(--rose-50), var(--rose-100))', border: 'var(--rose-200)', accent: 'var(--rose-500)', tag: 'badge-red' },
-  { bg: 'linear-gradient(135deg, var(--sky-50), var(--sky-100))', border: 'var(--sky-100)', accent: 'var(--sky-500)', tag: 'badge-blue' },
-  { bg: 'linear-gradient(135deg, var(--teal-50), var(--teal-100))', border: 'var(--teal-200)', accent: 'var(--teal-500)', tag: 'badge-green' },
-  { bg: 'linear-gradient(135deg, var(--violet-50), var(--violet-100))', border: 'var(--violet-100)', accent: 'var(--violet-500)', tag: 'badge-violet' },
-];
+// --- Icons ---
+const HomeIcon = () => (
+  <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+);
+const ActivityIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+);
+// Use ListIcon for Sessions
+const ListIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+);
+const CompassIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle></svg>
+);
+const WalletIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg>
+);
+const SearchIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+);
 
-function ProgressRing({ current, total, size = 120, strokeWidth = 10 }) {
+function ProgressRing({ current, total, size = 120, strokeWidth = 10, color = "#C4F038" }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const pct = Math.min(current / total, 1);
   const offset = circumference * (1 - pct);
 
   return (
-    <div className="progress-ring-wrap" style={{ width: size, height: size }}>
+    <div style={{ position: 'relative', width: size, height: size }}>
       <svg width={size} height={size}>
-        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="var(--gray-100)" strokeWidth={strokeWidth} />
+        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="#E5E7EB" strokeWidth={strokeWidth} />
         <motion.circle
           cx={size/2} cy={size/2} r={radius} fill="none"
-          stroke="url(#teal-gradient)" strokeWidth={strokeWidth} strokeLinecap="round"
+          stroke={color} strokeWidth={strokeWidth} strokeLinecap="round"
           strokeDasharray={circumference}
           initial={{ strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: offset }}
           transition={{ duration: 1.2, ease: [0.16,1,0.3,1] }}
           transform={`rotate(-90 ${size/2} ${size/2})`}
         />
-        <defs>
-          <linearGradient id="teal-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="var(--teal-400)" />
-            <stop offset="100%" stopColor="var(--lime-500)" />
-          </linearGradient>
-        </defs>
       </svg>
-      <div className="progress-ring-inner">
-        <span className="progress-ring-pct">{Math.round(pct * 100)}%</span>
-        <span className="progress-ring-label">completed</span>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+        <span style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--font-display)', color: '#111827' }}>
+          {Math.round(pct * 100)}%
+        </span>
       </div>
     </div>
   );
 }
 
-const MOOD_STORAGE_KEY = 'mc_last_mood';
+function MiniSparkline({ data }) {
+  const max = Math.max(...data, 10);
+  const min = Math.min(...data, 0);
+  const range = max - min;
+  const w = 220;
+  const h = 50;
+  
+  const pts = data.map((val, i) => {
+    const x = (i / (data.length - 1 || 1)) * w;
+    const y = h - ((val - min) / (range || 1)) * h;
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <svg width="100%" height="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+      <polyline points={pts} fill="none" stroke="#C4F038" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -73,212 +100,258 @@ export default function Dashboard() {
       /* ignore */
     }
   }, []);
-
-  const weekNum = getWeekNumber();
+  
   const weekSessions = getWeekSessions();
   const avgStress = getAverageStress();
-
-  const recentByPrompt = useMemo(() => {
-    const map = {};
-    sessions.forEach(s => {
-      if (!map[s.promptId] || new Date(s.timestamp) > new Date(map[s.promptId].timestamp)) map[s.promptId] = s;
-    });
-    return map;
-  }, [sessions]);
-
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  }, []);
+  const pct = Math.round((weekSessions.length / WEEKLY_GOAL) * 100) || 0;
 
   return (
-    <div className="dashboard">
-      <header className="dash-header">
-        <div className="container">
-          <div className="dash-header-inner">
-            <div className="dash-brand" onClick={() => navigate('/')}>
-              <span className="brand-icon">🧠</span>
-              <span className="brand-text">MindCanvas</span>
+    <div className="dash-container">
+      {/* --- Sidebar --- */}
+      <aside className="dash-sidebar">
+        <div className="sidebar-logo">
+          <img src="/Untitled design (3)/cute-brain.svg" alt="logo" style={{width: '32px', height: '32px'}} />
+        </div>
+        <nav className="sidebar-nav">
+          <button className="nav-item active" onClick={() => navigate('/dashboard')} title="Home"><HomeIcon /></button>
+          <button className="nav-item" onClick={() => navigate('/draw')} title="Start Session (Prompts)"><ActivityIcon /></button>
+          <button className="nav-item" onClick={() => navigate('/find-doctor')} title="Find Doctor"><CompassIcon /></button>
+        </nav>
+      </aside>
+
+      {/* --- Main Content --- */}
+      <main className="dash-main">
+        <header className="dash-top">
+          <div className="top-text">
+            <h1>Hi, {profile?.name || 'Raj'}!</h1>
+            <p>Let's check your health today</p>
+          </div>
+          
+          <div className="top-search">
+            <span className="search-icon"><SearchIcon /></span>
+            <input type="text" placeholder="Search..." />
+            <span className="search-k">⌘K</span>
+          </div>
+
+          <div className="top-user">
+            <div className="user-profile">
+              {profile?.avatar ? (
+                <img src={profile.avatar} alt="avatar" className="avatar-img" />
+              ) : (
+                <div className="avatar">{profile?.name ? profile.name[0].toUpperCase() : 'R'}</div>
+              )}
+              <div className="user-info">
+                <strong>{profile?.name || 'Raj'}</strong>
+                <span>member</span>
+              </div>
             </div>
           </div>
+        </header>
+
+        <div className="hero-mood-section">
+          <h3>How are you feeling today?</h3>
+          <div className="mood-row">
+            {MOOD_EMOJIS.map((m) => (
+              <button
+                key={m.label}
+                type="button"
+                className={`mood-btn${selectedMood === m.label ? ' mood-btn-selected' : ''}`}
+                title={`${m.label} — start drawing`}
+                onClick={() => {
+                  setSelectedMood(m.label);
+                  try { sessionStorage.setItem(MOOD_STORAGE_KEY, m.label); } catch {}
+                  navigate('/draw', { state: { promptId: 'energy', preSessionMood: m.label } });
+                }}
+              >
+                <span className="mood-face">{m.emoji}</span>
+                <span className="mood-name">{m.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </header>
 
-      <main className="dash-body">
-        <div className="container">
-          {/* Hero greeting */}
-          <motion.section className="dash-hero" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="hero-left">
-              <h1>{greeting}, {profile?.name || 'there'} 👋</h1>
-              <p>How are you feeling today? Track your mood and start a drawing session.</p>
-              <div className="mood-row">
-                {MOOD_EMOJIS.map((m, i) => (
-                  <motion.button
-                    key={m.label}
-                    type="button"
-                    className={`mood-btn${selectedMood === m.label ? ' mood-btn-selected' : ''}`}
-                    title={`${m.label} — start drawing`}
-                    aria-pressed={selectedMood === m.label}
-                    whileHover={{ scale: 1.15, y: -3 }}
-                    whileTap={{ scale: 0.92 }}
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.2 + i * 0.06, type: 'spring' }}
-                    onClick={() => {
-                      setSelectedMood(m.label);
-                      try {
-                        sessionStorage.setItem(MOOD_STORAGE_KEY, m.label);
-                      } catch {
-                        /* ignore */
-                      }
-                      navigate('/draw', {
-                        state: { promptId: 'energy', preSessionMood: m.label },
-                      });
-                    }}
-                  >
-                    <span className="mood-face">{m.emoji}</span>
-                    <span className="mood-name">{m.label}</span>
-                  </motion.button>
-                ))}
+
+        <div className="dash-grid">
+          {/* COLUMN LEFT */}
+          <div className="grid-col col-left">
+            {/* Wellness Score */}
+            <div className="card score-card">
+              <div className="score-text-row">
+                <p>Wellness Score</p>
+                <h2>{pct}%</h2>
+              </div>
+              <div className="score-wave">
+                 <MiniSparkline data={sessions.length ? sessions.slice(-10).map(s => s.stressScore||5) : [5,6,4,5,7,5]} />
+              </div>
+              <div className="score-bottom">
+                <span>Source: VoiceCanvas</span>
+                <a onClick={() => navigate('/session-results')}>View Details {'>'}</a>
               </div>
             </div>
-          </motion.section>
 
-          {/* Stat cards row */}
-          <motion.section className="dash-stats" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            <div className="stat-card stat-card-progress">
-              <div className="sc-header">
-                <h3>Your progress</h3>
-                <span className="badge badge-green">Week {weekNum}</span>
+            {/* Today's Activity */}
+            <div className="card activity-card">
+              <div className="card-top-header">
+                <h3>Today's Activity</h3>
+                <button className="add-btn" onClick={() => navigate('/draw')} title="Add Session">+</button>
               </div>
-              <ProgressRing current={weekSessions.length} total={WEEKLY_GOAL} />
-              <p className="sc-detail">{weekSessions.length} of {WEEKLY_GOAL} drawings this week</p>
-            </div>
-
-            <div className="stat-card stat-card-stress">
-              <div className="sc-header">
-                <h3>Avg. Stress</h3>
-                <span className={`badge ${avgStress >= 7 ? 'badge-red' : avgStress >= 5 ? 'badge-yellow' : 'badge-green'}`}>
-                  {avgStress >= 7 ? 'High' : avgStress >= 5 ? 'Moderate' : 'Low'}
-                </span>
+              <p className="subtitle">Daily Completion</p>
+              
+              <div className="activity-chart-placeholder">
+                 <MiniSparkline data={weekSessions.length ? [2,5,3,6,4,7,5] : [1,2,1,3,1,2,1]} />
               </div>
-              <div className="stress-display">
-                <span className="stress-num" style={{ color: avgStress >= 7 ? 'var(--error)' : avgStress >= 5 ? 'var(--warning)' : 'var(--success)' }}>
-                  {avgStress > 0 ? avgStress.toFixed(1) : '—'}
-                </span>
-                <span className="stress-max">/10</span>
-              </div>
-              <p className="sc-detail">{sessions.length} total sessions recorded</p>
-            </div>
 
-            <div className="stat-card stat-card-streak">
-              <div className="sc-header">
-                <h3>Total Sessions</h3>
-                <span className="badge badge-blue">All time</span>
-              </div>
-              <div className="streak-num">{sessions.length}</div>
-              <p className="sc-detail">Keep going — consistency builds evidence</p>
-            </div>
-          </motion.section>
-
-          {/* Stress Trajectory Chart */}
-          {sessions.length > 0 && (
-            <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
-              <StressChart sessions={sessions} />
-            </motion.section>
-          )}
-
-          {/* Drawing Prompts */}
-          <motion.section className="dash-prompts" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <div className="section-head">
-              <h2>Today's Drawing Prompts</h2>
-              <p>Tap to start. Point your finger at the webcam to draw.</p>
-            </div>
-
-            <div className="prompts-grid">
-              {DRAWING_PROMPTS.map((prompt, i) => {
-                const recent = recentByPrompt[prompt.id];
-                const done = recent && new Date(recent.timestamp).toDateString() === new Date().toDateString();
-                const style = PROMPT_STYLES[i % PROMPT_STYLES.length];
-                return (
-                  <motion.button
-                    key={prompt.id}
-                    className={`prompt-card ${done ? 'prompt-done' : ''}`}
-                    style={{ '--pc-bg': style.bg, '--pc-border': style.border, '--pc-accent': style.accent }}
-                    onClick={() => navigate('/draw', { state: { promptId: prompt.id } })}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.25 + i * 0.06 }}
-                    whileHover={{ y: -5, boxShadow: '0 12px 28px rgba(0,0,0,0.1)' }}
-                    whileTap={{ scale: 0.97 }}
-                  >
-                    {done && <span className="done-chip">✓ Done</span>}
-                    <span className="pc-icon">{prompt.icon}</span>
-                    <h3 className="pc-title">{prompt.title}</h3>
-                    <p className="pc-desc">{prompt.description}</p>
-                    <span className="pc-arrow">→</span>
-                  </motion.button>
-                );
-              })}
-            </div>
-          </motion.section>
-
-          {/* Care Board */}
-          <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-            <CareBoard />
-          </motion.section>
-
-          {/* Recent sessions */}
-          {sessions.length > 0 && (
-            <motion.section className="dash-recent" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-              <h2>Recent Sessions</h2>
-              <div className="recent-list">
-                {sessions.slice(-5).reverse().map((session) => {
-                  const prompt = DRAWING_PROMPTS.find(p => p.id === session.promptId);
-                  const si = DRAWING_PROMPTS.findIndex(p => p.id === session.promptId);
-                  const style = PROMPT_STYLES[si % PROMPT_STYLES.length];
-                  return (
-                    <div key={session.id} className="recent-row">
-                      <div className="recent-thumb" style={{ background: style?.bg || 'var(--gray-100)' }}>
-                        {session.imageUrl ? <img src={session.imageUrl} alt="" /> : <span>{prompt?.icon || '🎨'}</span>}
-                      </div>
-                      <div className="recent-info">
-                        <h4>{prompt?.title || 'Drawing'}</h4>
-                        <span className="recent-date">
-                          {new Date(session.timestamp).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                        </span>
-                      </div>
-                      <span className={`score-pill ${(session.stressScore||0) >= 7 ? 'score-high' : (session.stressScore||0) >= 5 ? 'score-mid' : 'score-low'}`}>
-                        {session.stressScore?.toFixed(1) || '—'}/10
-                      </span>
-                    </div>
-                  );
+              <div className="days-row">
+                {['S','M','T','W','T','F','S'].map((d, i) => {
+                  const today = new Date().getDay();
+                  let cls = 'day-circle';
+                  if (i === today) cls += ' active';
+                  if (i < today) cls += ' checked';
+                  return <span key={i} className={cls}>{i < today ? '✓' : d}</span>;
                 })}
               </div>
-            </motion.section>
-          )}
+            </div>
 
-          {weekSessions.length < WEEKLY_GOAL && (
-            <motion.div className="dash-nudge" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
-              <span className="nudge-icon">⚡</span>
-              <p><strong>Missed a drawing?</strong> A 2-minute mood check builds your clinical evidence. <button className="link-btn" onClick={() => navigate('/draw', { state: { promptId: 'energy' } })}>Quick draw now →</button></p>
-            </motion.div>
-          )}
+            {/* Recent Sessions List (replaced Upcoming Workouts) */}
+            <div className="card">
+              <div className="card-top-header">
+                <h3>Recent Sessions</h3>
+                <a onClick={() => navigate('/session-results')}>View All {'>'}</a>
+              </div>
+              <div className="prompts-list">
+                {sessions.slice(-3).reverse().map((s, i) => {
+                   const p = DRAWING_PROMPTS.find(pr => pr.id === s.promptId) || DRAWING_PROMPTS[0];
+                   return (
+                     <div key={s.id || i} className="prompt-item" style={{background: p.colorLight}}>
+                       <div className="prompt-icon">{s.imageUrl ? <img src={s.imageUrl} style={{width:'100%', height:'100%', borderRadius:'8px', objectFit:'cover'}} alt="draw"/> : p.icon}</div>
+                       <div className="prompt-info">
+                         <h4>{p.title}</h4>
+                         <p>{new Date(s.timestamp).toLocaleDateString(undefined, {month:'short', day:'numeric'})}</p>
+                       </div>
+                       <span className="prompt-action">···</span>
+                     </div>
+                   );
+                })}
+                {sessions.length === 0 && <p className="subtitle" style={{marginTop:'10px'}}>No sessions yet. Draw today!</p>}
+              </div>
+            </div>
 
-          {/* Footer links */}
-          <motion.div className="dash-footer-links" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }}>
-            <button className="dash-footer-btn" onClick={() => navigate('/find-doctor')}>
-              🌍 Find a Doctor
-            </button>
-            <button className="dash-footer-btn" onClick={() => navigate('/resources')}>
-              💊 Free Care Resources
-            </button>
-            <a className="dash-footer-btn" href="tel:988">
-              📞 Crisis Line: 988
-            </a>
-          </motion.div>
+            {/* Steps / Streak */}
+            <div className="card streak-card">
+               <p>Total Sessions</p>
+               <h2>{sessions.length} <span>/drawings</span></h2>
+               <div className="gradient-bar-wrap">
+                 <span>Current</span>
+                 <div className="g-bar"></div>
+                 <span>Goal</span>
+               </div>
+            </div>
+          </div>
+
+          {/* COLUMN MIDDLE */}
+          <div className="grid-col col-mid">
+            <div className="stats-row">
+               <div className="card stat-mini">
+                 <div className="stat-text">
+                   <p>Avg Stress</p>
+                   <h2>{avgStress.toFixed(1)} <span>/10</span></h2>
+                   <span className="stat-sub">Last 7 days</span>
+                 </div>
+                 <img src="/Untitled design (3)/cute-brain.svg" alt="brain" className="stat-icon" />
+               </div>
+               
+               <div className="card stat-mini">
+                 <div className="stat-text">
+                   <p>Overall Mood</p>
+                   <h2>{avgStress < 5 ? 'Good' : 'Fair'} <span></span></h2>
+                   <span className="stat-sub">Self report</span>
+                 </div>
+                 <img src="/Untitled design (3)/healthy-brain-boy.svg" alt="mood" className="stat-icon" />
+               </div>
+            </div>
+
+            {/* CareBoard Wrapper replaces Banner */}
+            <div className="careboard-wrapper">
+               <CareBoard />
+            </div>
+
+            {/* Active Stress Chart (replaces Calories chart) */}
+            <div className="card chart-card" style={{ flex: 1, padding: 0, overflow: 'hidden' }}>
+               <StressChart sessions={sessions} />
+            </div>
+          </div>
+
+          {/* COLUMN RIGHT */}
+          <div className="grid-col col-right">
+             {/* PROMINENT: Today's Drawing Prompts */}
+             <div className="card prompts-prominent-card">
+               <div className="card-top-header">
+                 <h3>Drawing Prompts</h3>
+                 <a onClick={() => navigate('/draw')}>View All {'>'}</a>
+               </div>
+               <p className="subtitle" style={{marginBottom: '15px'}}>Start your session now.</p>
+               <div className="videos-list">
+                 {DRAWING_PROMPTS.slice(0, 4).map((p, i) => (
+                   <div key={p.id} className="video-item prompt-highlight-item" onClick={() => navigate('/draw', { state: {promptId: p.id} })}>
+                     <div className="vid-thumb" style={{ background: p.bgGradient }}>
+                        <span style={{ fontSize: '24px' }}>{p.icon}</span>
+                     </div>
+                     <div className="vid-info">
+                       <h4>{p.title}</h4>
+                       <p>{p.description.substring(0, 26)}...</p>
+                     </div>
+                     <button className="vid-play">▶</button>
+                   </div>
+                 ))}
+               </div>
+             </div>
+
+             {/* Monthly Progress */}
+             <div className="card monthly-card">
+               <h3>Weekly Progress</h3>
+               <div className="gauge-container">
+                  <ProgressRing current={weekSessions.length} total={WEEKLY_GOAL} size={140} strokeWidth={12} color="#C4F038" />
+               </div>
+               <p className="monthly-desc">You have achieved <strong>{pct}%</strong> of your goal this week</p>
+             </div>
+
+             {/* Schedule Card / Free Resources */}
+             <div className="card">
+               <div className="card-top-header">
+                 <h3>Clinical Resources</h3>
+                 <a onClick={() => navigate('/resources')}>View All {'>'}</a>
+               </div>
+               <div className="schedule-list">
+                  <div className="sch-item" onClick={() => navigate('/find-doctor')} style={{cursor:'pointer'}}>
+                    <div className="sch-icon"><img src="/Untitled design (3)/sporty-brain.svg" alt="icon"/></div>
+                    <div className="sch-info">
+                      <h4>Find a Therapist</h4>
+                      <p>Local matches</p>
+                    </div>
+                    <span className="sch-badge badge-green">Connect</span>
+                  </div>
+
+                  <div className="sch-item" onClick={() => window.location.href="tel:988"} style={{cursor:'pointer'}}>
+                    <div className="sch-icon"><img src="/Untitled design (3)/rainbow-mental-health.svg" alt="icon"/></div>
+                    <div className="sch-info">
+                      <h4>Crisis Line</h4>
+                      <p>Call 988</p>
+                    </div>
+                    <span className="sch-badge badge-red" style={{background:'#FEE2E2', color:'#EF4444'}}>24/7 Free</span>
+                  </div>
+
+                  <div className="sch-item" onClick={() => navigate('/resources')} style={{cursor:'pointer'}}>
+                    <div className="sch-icon"><img src="/Untitled design (3)/love-brain.svg" alt="icon"/></div>
+                    <div className="sch-info">
+                      <h4>Free Resources</h4>
+                      <p>Community</p>
+                    </div>
+                    <span className="sch-badge badge-green">Explore</span>
+                  </div>
+               </div>
+             </div>
+
+          </div>
         </div>
       </main>
     </div>
