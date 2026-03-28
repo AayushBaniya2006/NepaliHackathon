@@ -39,7 +39,7 @@ export default function Onboarding() {
   const role = location.state?.role || 'patient';
   const { setProfile, setOnboarded } = useStorage();
 
-  const TOTAL_STEPS = 4;
+  const TOTAL_STEPS = 3;
   const [step, setStep] = useState(1);
   const [consent, setConsent] = useState({});
   const [name, setName] = useState('');
@@ -50,18 +50,11 @@ export default function Onboarding() {
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState(null);
 
-  // Calibration state (step 3)
-  const [calibrationIndex, setCalibrationIndex] = useState(0);
-  const [calibrated, setCalibrated] = useState({});
-  const [calibrationTimeout, setCalibrationTimeout] = useState(false);
-  const calibrationTimerRef = useRef(null);
-  const [currentGesture, setCurrentGesture] = useState('none');
-
   const isCaregiver = role === 'caregiver';
 
-  // Camera init for steps 2-3
+  // Camera init for step 2
   useEffect(() => {
-    if (step < 2 || step > 3) return;
+    if (step !== 2) return;
     if (streamRef.current) return; // already have a stream
     async function initCamera() {
       try {
@@ -80,9 +73,9 @@ export default function Onboarding() {
     initCamera();
   }, [step]);
 
-  // Stop camera when leaving step 3
+  // Stop camera when leaving step 2
   useEffect(() => {
-    if (step > 3 || step < 2) {
+    if (step !== 2) {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(t => t.stop());
         streamRef.current = null;
@@ -100,77 +93,9 @@ export default function Onboarding() {
     };
   }, []);
 
-  // Gesture detection callback for calibration
-  // useMediaPipe emits fist_hold before fist (hold-to-confirm); treat fist_hold as fist here.
-  const handleCalibrationGesture = useCallback((detectedGesture) => {
-    setCurrentGesture(detectedGesture);
-    if (calibrationIndex >= CALIBRATION_GESTURES.length) return;
-    const expected = CALIBRATION_GESTURES[calibrationIndex]?.id;
-    const normalized =
-      detectedGesture === 'fist_hold' ? 'fist' : detectedGesture;
-    if (normalized === expected) {
-      setCalibrated(prev => ({ ...prev, [expected]: true }));
-      setCalibrationTimeout(false);
-      if (calibrationTimerRef.current) {
-        clearTimeout(calibrationTimerRef.current);
-        calibrationTimerRef.current = null;
-      }
-      // Move to next gesture after a brief pause
-      setTimeout(() => {
-        setCalibrationIndex(prev => prev + 1);
-      }, 600);
-    }
-  }, [calibrationIndex]);
-
-  const { isLoaded: mpLoaded, error: mpError, startTracking, stopTracking } = useMediaPipe(videoRef, handleCalibrationGesture);
-
-  // Start/stop tracking for calibration step
-  useEffect(() => {
-    if (step === 3 && cameraReady && mpLoaded) {
-      startTracking();
-    } else {
-      stopTracking();
-    }
-  }, [step, cameraReady, mpLoaded, startTracking, stopTracking]);
-
-  // 5-second timeout per gesture
-  useEffect(() => {
-    if (step !== 3) return;
-    if (calibrationIndex >= CALIBRATION_GESTURES.length) return;
-    const expected = CALIBRATION_GESTURES[calibrationIndex]?.id;
-    if (calibrated[expected]) return;
-
-    setCalibrationTimeout(false);
-    calibrationTimerRef.current = setTimeout(() => {
-      setCalibrationTimeout(true);
-    }, 5000);
-    return () => {
-      if (calibrationTimerRef.current) clearTimeout(calibrationTimerRef.current);
-    };
-  }, [step, calibrationIndex, calibrated]);
-
-  const skipCalibration = useCallback(() => {
-    const all = {};
-    CALIBRATION_GESTURES.forEach((g) => { all[g.id] = true; });
-    setCalibrated(all);
-    setCalibrationIndex(CALIBRATION_GESTURES.length);
-    setCalibrationTimeout(false);
-    if (calibrationTimerRef.current) {
-      clearTimeout(calibrationTimerRef.current);
-      calibrationTimerRef.current = null;
-    }
-  }, []);
-
   const canProceed = () => {
     if (step === 1) return consent.disclaimer === true;
     if (step === 2) return cameraReady || cameraError;
-    if (step === 3) {
-      return (
-        calibrationIndex >= CALIBRATION_GESTURES.length
-        || cameraError
-        || Boolean(mpError)
-      );
-    }
     return true;
   };
 
@@ -185,7 +110,6 @@ export default function Onboarding() {
         isNonverbal: consent.nonverbal || false,
         consentData: consent.data || false,
         startDate: new Date().toISOString(),
-        gesturesCalibrated: Object.keys(calibrated).length > 0,
       });
       setOnboarded(true);
       navigate('/dashboard');
@@ -222,38 +146,42 @@ export default function Onboarding() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -30 }}
             >
-              <div className="step-header">
-                <span className="step-icon-large">{isCaregiver ? '🛡️' : '✋'}</span>
-                <h1>{isCaregiver ? 'Caregiver Setup' : 'Welcome, Let\'s Get Started'}</h1>
-                <p>
-                  {isCaregiver
-                    ? 'A few quick consents to protect the person you care for.'
-                    : 'Just a few things before we begin your first drawing session.'}
-                </p>
-              </div>
+              <div className="step-layout-split">
+                <div className="step-header">
+                  <div className="step-illustration">
+                    <img src="/Untitled design (3)/healthy-brain-boy.svg" alt="Brain character" />
+                  </div>
+                  <h1>{isCaregiver ? 'Caregiver Setup' : 'Welcome, Let\'s Get Started'}</h1>
+                  <p>
+                    {isCaregiver
+                      ? 'A few quick consents to protect the person you care for.'
+                      : 'Just a few things before we begin your first drawing session.'}
+                  </p>
+                </div>
 
-              <div className="consent-list">
-                {CONSENT_ITEMS.map((item) => {
-                  if (item.id === 'nonverbal' && !isCaregiver) return null;
-                  return (
-                    <button
-                      key={item.id}
-                      className={`consent-item ${consent[item.id] ? 'consent-checked' : ''}`}
-                      onClick={() => toggleConsent(item.id)}
-                    >
-                      <div className={`consent-checkbox ${consent[item.id] ? 'checked' : ''}`}>
-                        {consent[item.id] && '✓'}
-                      </div>
-                      <div className="consent-text">
-                        <span className="consent-label">
-                          {item.label}
-                          {item.required && <span className="consent-required">*</span>}
-                        </span>
-                        <span className="consent-sublabel">{item.sublabel}</span>
-                      </div>
-                    </button>
-                  );
-                })}
+                <div className="consent-list">
+                  {CONSENT_ITEMS.map((item) => {
+                    if (item.id === 'nonverbal' && !isCaregiver) return null;
+                    return (
+                      <button
+                        key={item.id}
+                        className={`consent-item ${consent[item.id] ? 'consent-checked' : ''}`}
+                        onClick={() => toggleConsent(item.id)}
+                      >
+                        <div className={`consent-checkbox ${consent[item.id] ? 'checked' : ''}`}>
+                          {consent[item.id] && '✓'}
+                        </div>
+                        <div className="consent-text">
+                          <span className="consent-label">
+                            {item.label}
+                            {item.required && <span className="consent-required">*</span>}
+                          </span>
+                          <span className="consent-sublabel">{item.sublabel}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </motion.div>
           )}
@@ -268,7 +196,9 @@ export default function Onboarding() {
               exit={{ opacity: 0, x: -30 }}
             >
               <div className="step-header">
-                <span className="step-icon-large">📷</span>
+                <div className="step-illustration">
+                  <img src="/Untitled design (3)/sporty-brain.svg" alt="Camera access" />
+                </div>
                 <h1>Camera Access</h1>
                 <p>We use your camera so you can draw with hand gestures. Nothing is recorded without your knowledge.</p>
               </div>
@@ -294,78 +224,8 @@ export default function Onboarding() {
             </motion.div>
           )}
 
-          {/* Step 3: Gesture Calibration */}
+          {/* Step 3: Profile */}
           {step === 3 && (
-            <motion.div
-              key="calibration"
-              className="onboarding-step"
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -30 }}
-            >
-              <div className="step-header">
-                <span className="step-icon-large">🤚</span>
-                <h1>Gesture Calibration</h1>
-                <p>Let's make sure hand tracking works for you. Follow each gesture below.</p>
-              </div>
-
-              {cameraError ? (
-                <div className="camera-error-box">
-                  <p>Camera not available — skipping calibration.</p>
-                  <p className="camera-error-hint">You'll use mouse drawing instead.</p>
-                </div>
-              ) : (
-                <div className="calibration-container">
-                  <div className="calibration-video-box">
-                    <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', maxWidth: 360, borderRadius: 12, transform: 'scaleX(-1)' }} />
-                    {!mpLoaded && !mpError && <p className="calibration-loading">Loading hand tracking...</p>}
-                    {mpError && (
-                      <p className="calibration-loading" style={{ color: 'var(--warning, #d97706)' }}>
-                        {mpError} Use Skip below to continue with mouse drawing.
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="calibration-gestures">
-                    {CALIBRATION_GESTURES.map((g, i) => {
-                      const done = calibrated[g.id];
-                      const active = i === calibrationIndex && !done;
-                      return (
-                        <div key={g.id} className={`calibration-item ${done ? 'calibration-done' : ''} ${active ? 'calibration-active' : ''}`}>
-                          <span className="calibration-icon">{done ? '✅' : g.icon}</span>
-                          <span className="calibration-label">{g.label}</span>
-                          {active && calibrationTimeout && (
-                            <span className="calibration-hint">{g.hint} — try again</span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {calibrationIndex >= CALIBRATION_GESTURES.length && (
-                    <motion.p className="calibration-complete"
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}>
-                      All gestures detected! You're ready to draw.
-                    </motion.p>
-                  )}
-
-                  {calibrationIndex < CALIBRATION_GESTURES.length && (
-                    <button
-                      type="button"
-                      className="btn btn-ghost calibration-skip"
-                      onClick={skipCalibration}
-                    >
-                      Skip calibration — I’ll use mouse drawing
-                    </button>
-                  )}
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {/* Step 4: Profile */}
-          {step === 4 && (
             <motion.div
               key="profile"
               className="onboarding-step"
@@ -373,43 +233,47 @@ export default function Onboarding() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -30 }}
             >
-              <div className="step-header">
-                <span className="step-icon-large">🎨</span>
-                <h1>Almost there!</h1>
-                <p>
-                  {isCaregiver
-                    ? 'What should we call you? This helps personalize the experience.'
-                    : 'Add a name so we can greet you. Then start your first drawing!'}
-                </p>
-              </div>
+              <div className="step-layout-split">
+                <div className="profile-main">
+                  <div className="step-header">
+                    <div className="step-illustration">
+                      <img src="/Untitled design (3)/rainbow-mental-health.svg" alt="Profile" />
+                    </div>
+                    <h1>Almost there!</h1>
+                    <p>
+                      {isCaregiver
+                        ? 'What should we call you? This helps personalize the experience.'
+                        : 'Add a name so we can greet you.'}
+                    </p>
+                  </div>
 
-              <div className="profile-form">
-                <div className="form-group">
-                  <label className="form-label" htmlFor="name">
-                    {isCaregiver ? 'Your name (caregiver)' : 'Your name or nickname'}
-                  </label>
-                  <input
-                    id="name"
-                    type="text"
-                    className="form-input profile-input"
-                    placeholder={isCaregiver ? 'e.g., Sarah' : 'e.g., Alex'}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    autoFocus
-                  />
+                  <div className="profile-form">
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="name">
+                        {isCaregiver ? 'Your name (caregiver)' : 'Your name or nickname'}
+                      </label>
+                      <input
+                        id="name"
+                        type="text"
+                        className="form-input profile-input"
+                        placeholder={isCaregiver ? 'Sarah' : 'Alex'}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="onboarding-preview">
                   <div className="preview-card">
                     <span className="preview-emoji">🖼️</span>
                     <h3>Your first week</h3>
-                    <p>Point your finger at the webcam to draw. 5 guided prompts, 3x per week, 5 minutes each. No mouse needed.</p>
+                    <p>Point your finger at the webcam to draw. 5 guided prompts, 3x per week.</p>
                     <div className="preview-prompts">
                       <span>⚡ Energy</span>
                       <span>🫂 Body</span>
                       <span>🌤️ Weather</span>
-                      <span>🛡️ Safe</span>
-                      <span>👾 Worry</span>
                     </div>
                   </div>
                 </div>

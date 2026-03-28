@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './GlobalNav.css';
 
-const HIDDEN_PATHS = ['/', '/onboarding', '/draw'];
+const HIDDEN_PATHS = ['/', '/onboarding', '/draw', '/dashboard', '/session-results', '/find-doctor', '/resources', '/clinician', '/insurance'];
 
 export default function GlobalNav() {
   const [scrolled, setScrolled] = useState(false);

@@ -15,6 +15,7 @@ const ClinicianDashboard = lazy(() => import('./pages/ClinicianDashboard'));
 const InsuranceForm = lazy(() => import('./pages/InsuranceForm'));
 const ResourceFinder = lazy(() => import('./pages/ResourceFinder'));
 const AppExperience = lazy(() => import('./pages/AppExperience'));
+const FindDoctor = lazy(() => import('./pages/FindDoctor'));
 
 function NotFound() {
   const navigate = useNavigate();
@@ -74,6 +75,7 @@ function AnimatedRoutes() {
             <Route path="/insurance" element={<InsuranceForm />} />
             <Route path="/resources" element={<ResourceFinder />} />
             <Route path="/app" element={<AppExperience />} />
+            <Route path="/find-doctor" element={<FindDoctor />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </motion.div>

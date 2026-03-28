@@ -59,8 +59,8 @@
   --prompt-worry: #9B8EC4;
 
   /* === Typography === */
-  --font-display: 'Fraunces', 'Playfair Display', 'Noto Sans Devanagari', Georgia, serif;
-  --font-body: 'Inter', 'DM Sans', 'Noto Sans Devanagari', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Outfit', 'Inter', -apple-system, sans-serif;
+  --font-body: 'Outfit', 'Inter', -apple-system, sans-serif;
 
   /* === Spacing === */
   --space-xs: 0.25rem;
@@ -227,7 +227,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 }
 
 .card:hover {
-  border-color: var(--peach);
+  border-color: #000;
   transform: scale(1.015);
   box-shadow: none;
 }
