@@ -60,6 +60,14 @@ export default function DrawingSession() {
   });
 
   const stampCooldownRef = useRef(false);
+  const webcamFramesRef = useRef([]);
+  const webcamIntervalRef = useRef(null);
+  const strokeDataRef = useRef([]);
+  const sessionStartTime = useRef(Date.now());
+
+  const handleStrokePoint = useCallback((point) => {
+    strokeDataRef.current.push(point);
+  }, []);
 
   const { recognizeSign, interpretSignMessage, loading: claudeLoading } = useClaude();
   const { analyzeDrawing, loading: analysisLoading } = useAnalysis();
@@ -119,6 +127,8 @@ export default function DrawingSession() {
       saveSession({
         promptId, imageUrl: dataUrl, stressScore: result.stress_score,
         feedbackShort: result.feedback_short, caregiverNote,
+        webcamFrames: webcamFramesRef.current,
+        strokeData: strokeDataRef.current,
       });
       saveAnalytics({
         promptId, stressScore: result.stress_score, indicators: result.indicators,
@@ -205,6 +215,26 @@ export default function DrawingSession() {
     initCamera();
     return () => { stream?.getTracks().forEach(t => t.stop()); stopTracking(); stopSignRecognition(); };
   }, [stopTracking, stopSignRecognition]);
+
+  // Webcam frame capture every 3 seconds for facial analysis
+  useEffect(() => {
+    if (!cameraReady || !videoRef.current) return;
+    webcamIntervalRef.current = setInterval(() => {
+      const video = videoRef.current;
+      if (!video || video.readyState < 2) return;
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = video.videoWidth;
+      tempCanvas.height = video.videoHeight;
+      tempCanvas.getContext('2d').drawImage(video, 0, 0);
+      webcamFramesRef.current.push({
+        image: tempCanvas.toDataURL('image/jpeg', 0.5),
+        timestamp: Date.now() - sessionStartTime.current,
+      });
+    }, 3000);
+    return () => {
+      if (webcamIntervalRef.current) clearInterval(webcamIntervalRef.current);
+    };
+  }, [cameraReady]);
 
   useEffect(() => {
     if (cameraReady && isLoaded && mode === 'draw') startTracking();
@@ -339,7 +369,8 @@ export default function DrawingSession() {
                     <p className="ds-fallback-note">You can still draw with your mouse.</p>
                     <div className="ds-mouse-canvas">
                       <DrawingCanvas ref={canvasRef} width={1280} height={720}
-                        currentColor={BRUSH_COLORS[selectedColor].value} />
+                        currentColor={BRUSH_COLORS[selectedColor].value}
+                        onStrokePoint={handleStrokePoint} />
                     </div>
                   </>
                 )}
@@ -354,6 +385,7 @@ export default function DrawingSession() {
                   <DrawingCanvas ref={canvasRef}
                     width={canvasDimensions.width} height={canvasDimensions.height}
                     currentColor={BRUSH_COLORS[selectedColor].value}
+                    onStrokePoint={handleStrokePoint}
                   />
                 )}
                 {mode === 'sign' && (
