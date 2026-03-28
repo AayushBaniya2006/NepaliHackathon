@@ -1,0 +1,14 @@
+.canvas-heatmap {
+  display: grid;
+  gap: 1px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--border-light);
+  width: 100%;
+  aspect-ratio: 10 / 8;
+}
+
+.heatmap-cell {
+  aspect-ratio: 1;
+  transition: background 300ms ease-out;
+}
