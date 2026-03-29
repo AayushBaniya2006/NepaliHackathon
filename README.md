@@ -1,6 +1,9 @@
 # VoiceCanvas
 
-**Live Demo**: https://voicecanvas-one.vercel.app
+**Live Demo**: https://voicecanvas-one.vercel.app : Client Side
+Doctor Saas : https://nepal-hackathon-doctor-side.vercel.app/dashboard
+Community Shareable Link" https://voicecanvas-one.vercel.app/care/demo-patient
+
 
 Mental health assessment platform that converts gesture-based drawings into clinical evaluations with multilingual AI voice feedback. Built for 30M+ people who struggle with verbal communication due to language barriers, trauma, autism, anxiety, or cultural stigma.
 
@@ -34,9 +37,7 @@ VoiceCanvas bypasses verbal communication entirely. Patients draw their feelings
 
 ## Technical Stack
 
-**Frontend**: React 19, Vite 8, MediaPipe Tasks Vision, face-api.js (TensorFlow.js), Framer Motion, i18next
-**Backend**: Express 5, MongoDB, OpenAI GPT-4o API, ElevenLabs API, Spotify API, Azure Blob Storage, JWT auth  
-**ML Models**: TinyFaceDetector, faceExpressionNet, MediaPipe HandLandmarker (21-point tracking), fine-tuned ml5 for doodle detection
+MindHaven uses React 19, React Router 7, Vite 8, Framer Motion, i18next, HTML5 Canvas, localStorage, Web APIs (MediaDevices, MediaRecorder, Web Speech where used), jsPDF, FHIR R4 export utilities, Azure Blob Storage (SAS, WebM/MP4 + PNG uploads), Express 5 (optional patient server) with cors, helmet, express-rate-limit, MongoDB Node driver, WebSocket (ws), JWT, Anthropic Messages API (Claude Sonnet 4 for drawing/sign vision), ElevenLabs TTS (eleven_monolingual_v1), CMS NPI Registry (proxied lookup), Google MediaPipe Tasks Vision (in-browser hands), Puppeteer (clinic automation), Flask, flask-cors, PyMongo, python-dotenv, OpenAI API (gpt-4o-mini, text-embedding-3-small), NumPy, Google Gmail APIs (OAuth client libraries), plus  DSM-5–aligned prompts (not a trained DSM model), and MHPAEA-oriented denial-analysis copy in the appeals flow with HIPPA frameworks and Color theory framework
 
 **AI Analysis Pipeline**
 
