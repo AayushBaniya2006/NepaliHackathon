@@ -8,7 +8,7 @@ Mental health assessment platform that converts gesture-based drawings into clin
 
 Over 450 million people worldwide suffer from mental health conditions but never receive treatment. Traditional verbal assessment fails for non-English speakers, nonverbal individuals, and those facing cultural stigma around discussing mental health.
 
-VoiceCanvas bypasses verbal communication entirely. Patients draw their feelings using webcam-tracked hand gestures. AI analyzes the drawings using fine tuned open source ml5 model, research backed fractal dimension algorithms, and real-time facial emotion detection with tensorflow. Results are delivered via natural voice synthesis in the patient's language (English, Nepali). Clinicians receive DSM-5 aligned SOAP notes and insurance-ready documentation.
+VoiceCanvas bypasses verbal communication entirely. Patients draw their feelings using webcam-tracked hand gestures. AI analyses the drawings using fine tuned open source ml5 model, research-backed fractal dimension algorithms, and real-time facial emotion detection with tensorflow. Results are delivered via natural voice synthesis in the patient's language (English, Nepali). Clinicians receive DSM-5 aligned SOAP notes and insurance-ready documentation.
 
 ## Core Features
 
@@ -35,8 +35,8 @@ VoiceCanvas bypasses verbal communication entirely. Patients draw their feelings
 ## Technical Stack
 
 **Frontend**: React 19, Vite 8, MediaPipe Tasks Vision, face-api.js (TensorFlow.js), Framer Motion, i18next
-**Backend**: Express 5, MongoDB, OpenAI GPT-4o API, ElevenLabs API, Azure Blob Storage, JWT auth  
-**ML Models**: TinyFaceDetector, faceExpressionNet, MediaPipe HandLandmarker (21-point tracking), fine tuned ml5 for doodle detection
+**Backend**: Express 5, MongoDB, OpenAI GPT-4o API, ElevenLabs API, Spotify API, Azure Blob Storage, JWT auth  
+**ML Models**: TinyFaceDetector, faceExpressionNet, MediaPipe HandLandmarker (21-point tracking), fine-tuned ml5 for doodle detection
 
 **AI Analysis Pipeline**
 
