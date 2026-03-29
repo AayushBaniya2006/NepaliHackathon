@@ -243,17 +243,6 @@ npm run preview
 | `VITE_AZURE_STORAGE_SAS` | No | Azure SAS token for blob access |
 | `VITE_VOICECANVAS_PATIENT_ID` | No | Patient identifier for session uploads |
 
-
-## Team Members and Roles
-
-| Name | Role | Responsibilities |
-|---|---|---|
-| Koshish Rimal | Team Lead / Full-Stack Developer | Architecture design, AI integration, patient app development, drawing analysis pipeline, system integration |
-| Sagar Paudel | Frontend Developer | Patient dashboard UI, landing page, onboarding flow, responsive design, CSS design system |
-| Member 3 | Backend Developer | Express API server, authentication, database integration, deployment configuration |
-| Member 4 | AI/ML Research | Claude prompt engineering, clinical validation, DSM-5 alignment, drawing analysis accuracy |
-
-
 ## How It Works
 
 1. **Onboarding** -- The patient selects their language, enters basic profile information, and optionally specifies their disability type and insurance status.
