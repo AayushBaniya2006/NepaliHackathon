@@ -13,6 +13,76 @@ Over 450 million people worldwide suffer from mental health conditions but never
 
 VoiceCanvas bypasses verbal communication entirely. Patients draw their feelings using webcam-tracked hand gestures. AI analyses the drawings using fine tuned open source ml5 model, research-backed fractal dimension algorithms, and real-time facial emotion detection with tensorflow. Results are delivered via natural voice synthesis in the patient's language (English, Nepali). Clinicians receive DSM-5 aligned SOAP notes and insurance-ready documentation.
 
+## Full patient feature list
+
+Accurate to this codebase. *Demo / hackathon build — not a medical device; see in-app disclaimers.*
+
+### Draw your feelings
+
+- Hand in front of the **webcam** — no stylus. **Google MediaPipe Hands** (in the browser): **index finger draws**, **pinch erases**, **fist clears**; gestures can also **trigger analyze** (speak gesture).
+- **Stamp system** — Side **Stamps** panel: click a stamp to place it at the **last canvas point** (or a default center). Built-in stamps include **Person**, **Tree**, **Heart**, **House**, **Star**, **Cloud** (each has optional gesture hints in `stamps.js` for future gesture-to-stamp flows).
+- If the camera is denied or unavailable, a **mouse drawing fallback** is offered on the drawing screen.
+- **Five guided prompts** (see `src/utils/drawingPrompts.js`): **Energy Circle**, **Body Map**, **Day Weather**, **Safe Thing**, **Worry Shape** — each includes a short clinical-style blurb in the UI.
+- **Session timer** during the draw flow.
+- **Solo vs Live** mode toggle (how the session is framed for interpretation).
+- **Draw vs Sign** mode: sign mode periodically captures camera frames and can send them through the **Claude** proxy for sign-related interpretation when the backend is up.
+- **Brain activity** panel — Toggle **Brain** on the drawing header: animated **brain regions** (e.g. motor, visual, emotional areas) light up based on **gesture and drawing state** as **biofeedback-style engagement** (illustrative UI, not a medical brain scan).
+- **Caregiver notes** (drawing session) — Optional **Notes** panel: quick context such as **skipped meals**, **meltdown count**, and **sleep** quality; saved with the session when you analyze.
+- **Live session metrics** (drawing session, side column) — While drawing, the UI can show **stroke-speed sparkline** (`LiveSparkline`), **canvas coverage heatmap** (`CanvasHeatmap`), and **gesture confidence** — telemetry that supports the “evidence for the AI” story (stored/analytics paths vary by setup).
+- **Emotion readout** (drawing + results) — After analysis, an **Emotion** card shows the model’s **dominant mood** label and **emoji** from AI indicators; during processing it shows a **detecting** state. This reflects **LLM output** on the drawing, not a separate real-time facial classifier.
+
+### Photos
+
+- **Dashboard — caregiver / context photos** — Patients can **upload photos** (e.g. environment or caregiver context) from the dashboard; images are kept on the **profile** (`caregiverPhotos` in local storage) for a richer record alongside sessions.
+- **Care Board** — Visitors with the share link can attach a **photo** with their supportive note (see Care Board section below).
+
+### AI reads your art
+
+- On submit, the **canvas image** is sent to **`/api/analyze/drawing`** (Express proxy → **Anthropic Claude**) when configured. The model returns structured fields: **stress score**, **mood-style indicators**, **color/line/placement** cues, **pattern text**, **SOAP-style clinical note** (subjective / objective / assessment / plan), **personal statement**, and **insurance-oriented** text where populated.
+- If the server is down or keys are missing, **`useAnalysis`** can use **built-in mock responses** so the UI still demos end-to-end.
+
+### Hear your results
+
+- **ElevenLabs** text-to-speech via **`/api/voice/speak`** (`eleven_monolingual_v1` on the server) when keys are set.
+- Falls back to the **browser Web Speech API** when ElevenLabs is unavailable.
+- **Onboarding** captures **language preference**; **i18next** drives UI strings (e.g. **en** / **ne**).
+
+### Session history and dashboard (metrics)
+
+- **Session list** — Recent **draw sessions** with prompt, stress score, and navigation to review flow.
+- **Weekly progress** — Progress **ring** vs **`WEEKLY_GOAL`** (sessions per week from `drawingPrompts.js`).
+- **Stress analytics** — **`StressChart`** and stored **analytics** entries (`useStorage`) for trend-style views; **average stress** across logged analytics.
+- **Mini sparkline** — Small **stress-over-time** polyline built from recent session scores on the dashboard card.
+- **Mood check-in** — **Emoji mood picker** (happy, calm, angry, sad, anxious, numb); last choice can persist in **sessionStorage** for the session.
+- **Care Board** widget on the home dashboard — quick access to the same board as the full Care Board flow.
+
+### After each session (results screen)
+
+- **Crisis banner** when stress is high or a crisis flag is set: **988** and **text HOME to 741741** links.
+- **Send to a doctor** opens **DoctorSelector** (bottom sheet) with the same **Women Mode** filter as Find Doctor.
+- **Download clinical PDF** (jsPDF).
+- **Health apps & wearables** sheet: **FHIR R4 JSON** observation download and **wellness JSON** bundle for bridging to apps or clinicians.
+- Optional **Azure Blob** upload: **MediaRecorder** webcam **replay** (WebM or MP4 per browser) + **drawing PNG** + **latest-replay.json** / **sessions-manifest.json** for the **Doctor SaaS** replay page (same `VITE_VOICECANVAS_PATIENT_ID` as the clinic app).
+
+### Care Board
+
+- Shareable route **`/care/:patientId`**: trusted contacts can leave **text notes or upload a photo** **without an account**; items appear as **sticky-note** style entries on the patient’s **Care Board** (also surfaced on the **Dashboard**).
+
+### Find a doctor
+
+- **FindDoctor** page: demo **provider cards** with filters (language, specialty, telehealth, etc.).
+- **Women Mode** toggle: restricts the list to **female** clinicians and applies a distinct theme.
+- **NPI Registry**: dev server **proxies** the CMS **NPI** API for US provider lookup where wired in the UI.
+
+### Other patient-app surfaces
+
+- **Landing** — marketing story, metrics, how it works.
+- **Onboarding** — profile and preferences.
+- **InsuranceForm** — **CMS-1500–style** demo form with parity-flavored copy; **not** a real submission (**demo disclaimers** in UI).
+- **ResourceFinder** — crisis and support resources.
+- **ClinicianDashboard** (embedded **`/clinician`**) — lightweight clinician-style view inside the same SPA for demos.
+- **AppExperience** — product-style walkthrough page.
+
 ## Core Features
 
 **VoiceCanvas — Full feature list (for patients)
