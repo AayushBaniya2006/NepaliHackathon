@@ -1,4 +1,6 @@
 import { useState, useCallback } from 'react';
+import { assessDrawingComplexity } from '../utils/fractalAnalysis';
+import { recognizeSketch } from '../utils/doodleRecognition';
 
 function getMockAnalysis(promptId) {
   const mocksByPrompt = {
@@ -107,7 +109,43 @@ export function useAnalysis() {
     setLoading(true);
     setError(null);
 
-    // Try server proxy
+    // Convert data URL to canvas for analysis
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+
+    // Load image from data URL
+    await new Promise((resolve) => {
+      img.onload = resolve;
+      img.src = canvasDataUrl;
+    });
+
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+
+    // Run advanced analyses (client-side, instant)
+    let fractalAnalysis = null;
+    let sketchAnalysis = null;
+
+    try {
+      // Fractal dimension for depression detection
+      fractalAnalysis = assessDrawingComplexity(canvas);
+      console.log('Fractal analysis:', fractalAnalysis);
+    } catch (err) {
+      console.error('Fractal analysis failed:', err);
+    }
+
+    try {
+      // Sketch object recognition using DoodleNet (trained on QuickDraw)
+      sketchAnalysis = await recognizeSketch(canvas);
+      console.log('DoodleNet sketch analysis:', sketchAnalysis);
+    } catch (err) {
+      console.error('Sketch recognition failed:', err);
+      sketchAnalysis = { model_loaded: false, detected_objects: [] };
+    }
+
+    // Try server proxy for LLM-based analysis
     try {
       const response = await makeRequest('/api/analyze/drawing', {
         method: 'POST',
@@ -117,20 +155,52 @@ export function useAnalysis() {
           promptId,
           promptLabel,
           emotionTimeline,
+          fractalAnalysis,
+          sketchAnalysis,
         }),
       });
       if (response.ok) {
         const result = await response.json();
+
+        // Enhance with client-side analyses
+        result.fractal_analysis = fractalAnalysis;
+        result.sketch_analysis = sketchAnalysis;
+
         setLoading(false);
         return result;
       }
     } catch (err) {
-      console.error('Proxy unavailable, using mock:', err);
+      console.error('Proxy unavailable, using enhanced mock:', err);
     }
 
-    // Fallback: mock data
+    // Fallback: enhanced mock data with real analyses
     await new Promise(r => setTimeout(r, 2500));
     const mock = getMockAnalysis(promptId);
+
+    // Add real fractal analysis
+    if (fractalAnalysis) {
+      mock.fractal_analysis = fractalAnalysis;
+
+      // Adjust stress score based on fractal dimension
+      if (fractalAnalysis.depression_risk === 'elevated') {
+        mock.stress_score = Math.max(mock.stress_score, 7.5);
+      } else if (fractalAnalysis.depression_risk === 'very_low_complexity') {
+        mock.stress_score = Math.max(mock.stress_score, 8.5);
+      }
+    }
+
+    // Add real sketch analysis
+    if (sketchAnalysis) {
+      mock.sketch_analysis = sketchAnalysis;
+
+      // Enhance clinical note with HTP findings
+      if (sketchAnalysis.htp_analysis?.clinical_flags?.length > 0) {
+        const htpNote = sketchAnalysis.htp_analysis.clinical_flags
+          .map(f => f.indicator)
+          .join(', ');
+        mock.clinical_note.objective += ` HTP analysis: ${htpNote}.`;
+      }
+    }
 
     // Enhance mock with facial emotion context if available
     if (emotionTimeline.length > 0) {
