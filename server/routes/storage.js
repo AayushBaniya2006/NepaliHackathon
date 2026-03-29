@@ -13,7 +13,6 @@ const PROFILE_WHITELIST = [
   'avatarUrl',
   'avatar',
   'location',
-  'role',
   'isNonverbal',
   'consentData',
   'startDate',
@@ -148,9 +147,7 @@ router.post('/analytics', async (req, res) => {
 router.get('/onboarded/:userId', authMiddleware, async (req, res) => {
   try {
     const paramUserId = req.params.userId;
-    const isSelf = req.user.id === paramUserId;
-    const isAdmin = req.user.role === 'admin';
-    if (!isSelf && !isAdmin) {
+    if (req.user.id !== paramUserId) {
       return res.status(403).json({ error: 'Forbidden' });
     }
     const db = getDB();
@@ -209,6 +206,36 @@ router.get('/team/all', async (req, res) => {
     res.json({ profiles, sessions, analytics });
   } catch (err) {
     res.status(500).json({ error: 'Failed to get team data' });
+  }
+});
+
+// ── Admin-only: update a user's role ────────────────────
+const VALID_ROLES = ['patient', 'clinician', 'admin'];
+
+router.put('/profile/role', authMiddleware, async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: admin role required' });
+    }
+    const { targetUserId, role } = req.body;
+    if (!targetUserId || !role) {
+      return res.status(400).json({ error: 'targetUserId and role are required' });
+    }
+    if (!VALID_ROLES.includes(role)) {
+      return res.status(400).json({ error: `Invalid role. Must be one of: ${VALID_ROLES.join(', ')}` });
+    }
+    const db = getDB();
+    const result = await db.collection('profiles').updateOne(
+      { userId: targetUserId },
+      { $set: { role, updated_at: new Date().toISOString() } }
+    );
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Role update error:', err);
+    res.status(500).json({ error: 'Failed to update role' });
   }
 });
 

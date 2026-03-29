@@ -10,6 +10,8 @@ export function setupWebSocket(server) {
 
   let metricsPollTimeout = null;
   let metricsPollActive = false;
+  /** Bumped in stopMetricsPollIfNoClients so in-flight metricsPollTick runs cannot schedule after shutdown. */
+  let metricsPollGeneration = 0;
 
   async function getMetrics() {
     try {
@@ -32,6 +34,7 @@ export function setupWebSocket(server) {
 
   function stopMetricsPollIfNoClients() {
     if (wss.clients.size > 0) return;
+    metricsPollGeneration += 1;
     if (metricsPollTimeout !== null) {
       clearTimeout(metricsPollTimeout);
       metricsPollTimeout = null;
@@ -45,10 +48,16 @@ export function setupWebSocket(server) {
       return;
     }
 
+    const genCap = metricsPollGeneration;
+
     const data = await getMetrics();
 
     if (wss.clients.size === 0) {
       metricsPollActive = false;
+      return;
+    }
+
+    if (!metricsPollActive || genCap !== metricsPollGeneration) {
       return;
     }
 
@@ -63,11 +72,13 @@ export function setupWebSocket(server) {
     }, 10000);
   }
 
+  /** @returns {boolean} true if a new poll chain was started (immediate tick will broadcast metrics) */
   function startMetricsPollIfNeeded() {
-    if (metricsPollActive) return;
-    if (wss.clients.size === 0) return;
+    if (metricsPollActive) return false;
+    if (wss.clients.size === 0) return false;
     metricsPollActive = true;
     void metricsPollTick();
+    return true;
   }
 
   wss.on('connection', (ws, req) => {
@@ -87,7 +98,7 @@ export function setupWebSocket(server) {
       clients.get(userId).add(ws);
     }
 
-    startMetricsPollIfNeeded();
+    const startedFreshPoll = startMetricsPollIfNeeded();
 
     ws.on('close', () => {
       if (userId && clients.has(userId)) {
@@ -97,10 +108,12 @@ export function setupWebSocket(server) {
       setImmediate(() => stopMetricsPollIfNoClients());
     });
 
-    // Send initial metrics
-    getMetrics().then((data) => {
-      if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'metrics.update', data }));
-    });
+    // One-off send only when a poll was already running (fresh poll broadcasts immediately via metricsPollTick)
+    if (!startedFreshPoll) {
+      getMetrics().then((data) => {
+        if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'metrics.update', data }));
+      });
+    }
   });
 
   // Expose broadcast function for routes to use
