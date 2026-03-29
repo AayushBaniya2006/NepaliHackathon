@@ -3,10 +3,11 @@
   min-height: 100vh;
   width: 100%;
   box-sizing: border-box;
-  background: #FAFAFB;
+  background: #ffffff;
   font-family: var(--font-body), sans-serif;
   color: #111827;
   padding-bottom: 60px;
+  transition: background 0.4s ease;
 }
 
 .fd-header {
@@ -33,9 +34,9 @@
 }
 
 .fd-body {
-  max-width: min(1440px, 100%);
+  max-width: min(1600px, 100%);
   margin: 0 auto;
-  padding: 20px 24px;
+  padding: 20px 40px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -249,3 +250,136 @@
 }
 .btn-outline { background: #F3F4F6; color: #4B5563; }
 .btn-primary { background: #111827; color: white; }
+
+/* ===== Women Mode Toggle Pill ===== */
+.fd-toggle-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #6B7280;
+  padding: 8px 18px;
+  border-radius: 40px;
+  border: 2px solid #E5E7EB;
+  background: #fff;
+  transition: all 0.35s ease;
+  user-select: none;
+}
+
+.fd-toggle-pill input {
+  display: none;
+}
+
+.fd-toggle-pill-track {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 12px;
+  background: #D1D5DB;
+  transition: background 0.3s ease;
+  flex-shrink: 0;
+}
+
+.fd-toggle-pill-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  transition: transform 0.3s cubic-bezier(.4,.2,.2,1);
+}
+
+.fd-toggle-pill--active {
+  border-color: #EC4899;
+  background: #FDF2F8;
+  color: #DB2777;
+}
+
+.fd-toggle-pill--active .fd-toggle-pill-track {
+  background: linear-gradient(135deg, #F472B6, #EC4899);
+}
+
+.fd-toggle-pill--active .fd-toggle-pill-thumb {
+  transform: translateX(18px);
+}
+
+/* ===== Women Mode Subtitle ===== */
+.fd-women-subtitle {
+  font-size: 0.95rem;
+  color: #DB2777;
+  font-weight: 500;
+  margin-top: 4px;
+  opacity: 0;
+  animation: fd-fade-in 0.4s ease forwards;
+}
+
+@keyframes fd-fade-in {
+  to { opacity: 1; }
+}
+
+/* ===== Women Mode — Pink Theme ===== */
+.fd-women-mode {
+  background: #FDF2F8;
+}
+
+.fd-women-mode .fd-hero h1 {
+  color: #9D174D;
+}
+
+.fd-women-mode .fd-card {
+  border: 1.5px solid #FBCFE8;
+  box-shadow: 0 4px 20px rgba(236,72,153,0.08);
+}
+
+.fd-women-mode .fd-card-bottom {
+  background: rgba(253, 242, 248, 0.92);
+}
+
+.fd-women-mode .fd-card-name {
+  color: #9D174D;
+}
+
+.fd-women-mode .btn-book {
+  background: linear-gradient(135deg, #EC4899, #DB2777);
+}
+
+.fd-women-mode .btn-book:hover {
+  background: linear-gradient(135deg, #F472B6, #EC4899);
+}
+
+.fd-women-mode .btn-share {
+  border-color: #FBCFE8;
+  color: #BE185D;
+}
+
+.fd-women-mode .btn-share:hover {
+  background: #FDF2F8;
+}
+
+.fd-women-mode .btn-ghost {
+  border-color: #FBCFE8;
+  color: #BE185D;
+}
+
+.fd-women-mode .fd-rating-badge {
+  background: #FDF2F8;
+  color: #9D174D;
+}
+
+.fd-women-mode .fd-rating-badge .star {
+  color: #EC4899;
+}
+
+.fd-women-mode .fd-connected-chip {
+  background: #EC4899;
+}
+
+.fd-women-mode .fd-modal .btn-primary {
+  background: linear-gradient(135deg, #EC4899, #DB2777);
+  color: white;
+}

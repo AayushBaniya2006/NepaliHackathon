@@ -815,3 +815,171 @@
     width: 100%;
   }
 }
+
+/* ===== Women Mode — Toggle Bar & Pill ===== */
+.ds-women-toggle-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px var(--space-xl);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.ds-women-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--gray-500);
+  padding: 7px 18px;
+  border-radius: 40px;
+  border: 2px solid var(--gray-200);
+  background: var(--bg-primary);
+  transition: all 0.35s ease;
+  user-select: none;
+}
+
+.ds-women-pill input {
+  display: none;
+}
+
+.ds-women-pill-track {
+  position: relative;
+  width: 38px;
+  height: 20px;
+  border-radius: 11px;
+  background: var(--gray-300);
+  transition: background 0.3s ease;
+  flex-shrink: 0;
+}
+
+.ds-women-pill-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  transition: transform 0.3s cubic-bezier(.4,.2,.2,1);
+}
+
+.ds-women-pill--active {
+  border-color: #EC4899;
+  background: #FDF2F8;
+  color: #DB2777;
+}
+
+.ds-women-pill--active .ds-women-pill-track {
+  background: linear-gradient(135deg, #F472B6, #EC4899);
+}
+
+.ds-women-pill--active .ds-women-pill-thumb {
+  transform: translateX(18px);
+}
+
+.ds-women-pill-label {
+  white-space: nowrap;
+}
+
+.ds-women-note {
+  font-size: 0.78rem;
+  color: #DB2777;
+  font-family: var(--font-body);
+  font-weight: 600;
+  animation: ds-women-fade 0.4s ease forwards;
+}
+
+@keyframes ds-women-fade {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ===== Women Mode — Pink Theme Overrides ===== */
+.ds-women-mode .ds-sheet {
+  border-top: 3px solid #F472B6;
+}
+
+.ds-women-mode .ds-title {
+  color: #9D174D;
+}
+
+.ds-women-mode .ds-subtitle strong {
+  color: #DB2777;
+}
+
+.ds-women-mode .ds-mission-bar {
+  background: linear-gradient(135deg, #FDF2F8, #FCE7F3);
+  border-color: #FBCFE8;
+}
+
+.ds-women-mode .ds-mission-bar p {
+  color: #9D174D;
+}
+
+.ds-women-mode .ds-card {
+  border-color: #FBCFE8;
+}
+
+.ds-women-mode .ds-card:hover {
+  border-color: #F9A8D4;
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.1);
+}
+
+.ds-women-mode .ds-doc-specialty {
+  color: #BE185D;
+}
+
+.ds-women-mode .ds-connect-btn {
+  background: linear-gradient(135deg, #EC4899, #DB2777);
+}
+
+.ds-women-mode .ds-connect-btn:hover {
+  background: linear-gradient(135deg, #F472B6, #EC4899);
+}
+
+.ds-women-mode .ds-lang-active {
+  background: #EC4899 !important;
+  border-color: #EC4899 !important;
+}
+
+.ds-women-mode .ds-lang-chip:hover {
+  border-color: #F9A8D4;
+  color: #BE185D;
+}
+
+.ds-women-mode .ds-search:focus {
+  border-color: #F9A8D4;
+}
+
+.ds-women-mode .ds-badge-free {
+  background: #FCE7F3;
+  color: #9D174D;
+}
+
+.ds-women-mode .ds-badge-org {
+  background: #FDF2F8;
+  color: #BE185D;
+}
+
+.ds-women-mode .ds-tab-active {
+  color: #DB2777 !important;
+  border-bottom-color: #EC4899 !important;
+}
+
+.ds-women-mode .ds-tab:hover {
+  color: #DB2777;
+}
+
+.ds-women-mode .ds-expand-btn:hover {
+  color: #DB2777;
+}
+
+.ds-women-mode .ds-handle {
+  background: #F9A8D4;
+}

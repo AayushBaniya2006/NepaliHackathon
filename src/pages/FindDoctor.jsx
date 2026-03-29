@@ -9,6 +9,7 @@ const MOCK_DOCTORS = [
     id: 'd1',
     name: 'Dr. Adam Max',
     credentials: 'Psychologist',
+    gender: 'male',
     photo: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=600&q=80',
     rating: 4.9,
     isTall: true,
@@ -22,6 +23,7 @@ const MOCK_DOCTORS = [
     id: 'd2',
     name: 'Dr. Max Brad',
     credentials: 'Cardiologist',
+    gender: 'male',
     photo: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=600&q=80',
     rating: 4.5,
     isTall: false,
@@ -35,6 +37,7 @@ const MOCK_DOCTORS = [
     id: 'd3',
     name: 'Dr. Darlene Robert',
     credentials: 'Neurologist',
+    gender: 'female',
     photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80',
     rating: 4.8,
     isTall: false,
@@ -48,6 +51,7 @@ const MOCK_DOCTORS = [
     id: 'd4',
     name: 'Dr. Johan Hill',
     credentials: 'General Surgeon',
+    gender: 'male',
     photo: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=600&q=80',
     rating: 4.5,
     isTall: true,
@@ -61,6 +65,7 @@ const MOCK_DOCTORS = [
     id: 'd5',
     name: 'Dr. Priya Nair',
     credentials: 'LPC, Counselor',
+    gender: 'female',
     photo: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=600&q=80',
     rating: 4.9,
     isTall: true,
@@ -74,6 +79,7 @@ const MOCK_DOCTORS = [
     id: 'd6',
     name: 'Dr. Kevin Park',
     credentials: 'PhD, Psychology',
+    gender: 'male',
     photo: 'https://images.unsplash.com/photo-1651008376811-b90baee60c1f?auto=format&fit=crop&w=600&q=80',
     rating: 4.7,
     isTall: false,
@@ -87,6 +93,7 @@ const MOCK_DOCTORS = [
     id: 'd7',
     name: 'Dr. Anita Koirala',
     credentials: 'Psychiatrist, MD',
+    gender: 'female',
     photo: 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=600&q=80',
     rating: 4.8,
     isTall: false,
@@ -100,6 +107,7 @@ const MOCK_DOCTORS = [
     id: 'd8',
     name: 'Dr. Samuel Okonkwo',
     credentials: 'Psychiatrist',
+    gender: 'male',
     photo: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=600&q=80',
     rating: 4.9,
     isTall: true,
@@ -113,6 +121,7 @@ const MOCK_DOCTORS = [
     id: 'd9',
     name: 'Dr. Emily Foster',
     credentials: 'LCSW',
+    gender: 'female',
     photo: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=600&q=80',
     rating: 4.6,
     isTall: false,
@@ -126,6 +135,7 @@ const MOCK_DOCTORS = [
     id: 'd10',
     name: 'Dr. Hiro Taneda',
     credentials: 'Neurologist',
+    gender: 'male',
     photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80',
     rating: 4.7,
     isTall: true,
@@ -139,6 +149,7 @@ const MOCK_DOCTORS = [
     id: 'd11',
     name: 'Dr. Sofia Méndez',
     credentials: 'Clinical Psychologist',
+    gender: 'female',
     photo: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=600&q=80',
     rating: 4.8,
     isTall: false,
@@ -152,6 +163,7 @@ const MOCK_DOCTORS = [
     id: 'd12',
     name: 'Dr. Thomas Weber',
     credentials: 'GP, Mental Health',
+    gender: 'male',
     photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=600&q=80',
     rating: 4.5,
     isTall: false,
@@ -167,6 +179,7 @@ export default function FindDoctor() {
   const navigate = useNavigate();
   const [telehealthOnly, setTelehealthOnly] = useState(false);
   const [vcOnly, setVcOnly] = useState(false);
+  const [womenMode, setWomenMode] = useState(false);
   const [confirming, setConfirming] = useState(null);
   const [connectedId, setConnectedId] = useState(() => {
     try { return localStorage.getItem('mc_connected_doctor_id') || null; } catch { return null; }
@@ -176,9 +189,10 @@ export default function FindDoctor() {
     return MOCK_DOCTORS.filter(d => {
       if (telehealthOnly && !d.telehealth) return false;
       if (vcOnly && !d.voiceCanvasCompatible) return false;
+      if (womenMode && d.gender !== 'female') return false;
       return true;
     });
-  }, [telehealthOnly, vcOnly]);
+  }, [telehealthOnly, vcOnly, womenMode]);
 
   function confirmConnect(doctor) {
     try {
@@ -190,11 +204,12 @@ export default function FindDoctor() {
   }
 
   return (
-    <div className="fd-page">
+    <div className={`fd-page ${womenMode ? 'fd-women-mode' : ''}`}>
       {/* Header */}
       <header className="fd-header">
         <div className="fd-hero">
           <h1>Choose Our Vetted Specialist</h1>
+          {womenMode && <p className="fd-women-subtitle">🛡️ Women-only providers — your data stays with women clinicians</p>}
         </div>
         <div className="fd-header-inner">
           <button className="btn-ghost" onClick={() => navigate('/dashboard')}>
@@ -207,6 +222,13 @@ export default function FindDoctor() {
         {/* Filters */}
         <motion.div className="fd-filters" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <div className="fd-toggle-row">
+            <label className={`fd-toggle-pill ${womenMode ? 'fd-toggle-pill--active' : ''}`}>
+              <input type="checkbox" checked={womenMode} onChange={e => setWomenMode(e.target.checked)} />
+              <span className="fd-toggle-pill-track">
+                <span className="fd-toggle-pill-thumb" />
+              </span>
+              <span>{womenMode ? '♀ Women Mode ON' : '♀ Women Mode'}</span>
+            </label>
             <label className="fd-toggle">
               <input type="checkbox" checked={telehealthOnly} onChange={e => setTelehealthOnly(e.target.checked)} />
               <span>Telehealth only</span>

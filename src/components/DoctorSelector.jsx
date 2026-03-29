@@ -11,6 +11,7 @@ const DOCTORS = [
     id: 'd1',
     name: 'Dr. Priya Sharma',
     title: 'Psychiatrist',
+    gender: 'female',
     org: 'WHO Volunteer Network',
     country: 'India',
     languages: ['Nepali', 'Hindi', 'English'],
@@ -28,6 +29,7 @@ const DOCTORS = [
     id: 'd2',
     name: 'Dr. Rajan Acharya',
     title: 'Clinical Psychologist',
+    gender: 'male',
     org: 'Volunteer — Maiti Nepal',
     country: 'Nepal',
     languages: ['Nepali', 'Hindi', 'English'],
@@ -45,6 +47,7 @@ const DOCTORS = [
     id: 'd3',
     name: 'Dr. James Carter',
     title: 'Clinical Psychologist',
+    gender: 'male',
     org: 'Pro Bono Network USA',
     country: 'United States',
     languages: ['English'],
@@ -62,6 +65,7 @@ const DOCTORS = [
     id: 'd4',
     name: 'Dr. Fatima Al-Zahra',
     title: 'Trauma Therapist',
+    gender: 'female',
     org: 'Médecins Sans Frontières',
     country: 'Jordan',
     languages: ['Arabic', 'English', 'French'],
@@ -79,6 +83,7 @@ const DOCTORS = [
     id: 'd5',
     name: 'Dr. Maria Elena Santos',
     title: 'Art Therapist',
+    gender: 'female',
     org: 'Global Art Therapy Collective',
     country: 'Brazil',
     languages: ['Portuguese', 'Spanish', 'English'],
@@ -96,6 +101,7 @@ const DOCTORS = [
     id: 'd6',
     name: 'Dr. Amara Diallo',
     title: 'Child Psychiatrist',
+    gender: 'female',
     org: 'Doctors Without Borders',
     country: 'Senegal / France',
     languages: ['French', 'English', 'Wolof'],
@@ -113,6 +119,7 @@ const DOCTORS = [
     id: 'd7',
     name: 'Dr. Chen Wei',
     title: 'Psychotherapist',
+    gender: 'male',
     org: 'Asia Pacific Volunteer Alliance',
     country: 'Singapore',
     languages: ['Mandarin', 'English', 'Cantonese'],
@@ -130,6 +137,7 @@ const DOCTORS = [
     id: 'd8',
     name: 'Dr. Yuki Tanaka',
     title: 'Art & Expressive Therapist',
+    gender: 'female',
     org: 'WHO Mental Health Gap',
     country: 'Japan',
     languages: ['Japanese', 'English'],
@@ -412,6 +420,7 @@ export default function DoctorSelector({ onClose, onConnect, stressScore }) {
   const [search, setSearch] = useState('');
   const [lang, setLang] = useState('All');
   const [expanded, setExpanded] = useState(null);
+  const [womenMode, setWomenMode] = useState(false);
 
   const filtered = useMemo(() => {
     return DOCTORS.filter(d => {
@@ -423,13 +432,14 @@ export default function DoctorSelector({ onClose, onConnect, stressScore }) {
         || d.country.toLowerCase().includes(q)
         || d.specialty.toLowerCase().includes(q)
         || d.languages.some(l => l.toLowerCase().includes(q));
+      if (womenMode && d.gender !== 'female') return false;
       return matchLang && matchSearch;
     });
-  }, [search, lang]);
+  }, [search, lang, womenMode]);
 
   return (
     <motion.div
-      className="ds-backdrop"
+      className={`ds-backdrop ${womenMode ? 'ds-women-mode' : ''}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -459,6 +469,22 @@ export default function DoctorSelector({ onClose, onConnect, stressScore }) {
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
+        </div>
+
+        {/* Women Mode toggle */}
+        <div className="ds-women-toggle-bar">
+          <label className={`ds-women-pill ${womenMode ? 'ds-women-pill--active' : ''}`}>
+            <input type="checkbox" checked={womenMode} onChange={e => setWomenMode(e.target.checked)} />
+            <span className="ds-women-pill-track">
+              <span className="ds-women-pill-thumb" />
+            </span>
+            <span className="ds-women-pill-label">
+              {womenMode ? '♀ Women Mode ON' : '♀ Women Mode'}
+            </span>
+          </label>
+          {womenMode && (
+            <span className="ds-women-note">🛡️ Only women clinicians shown — your data stays with women providers</span>
+          )}
         </div>
 
         {/* Breaking-barriers banner */}

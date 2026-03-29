@@ -57,8 +57,16 @@ async function mergeSessionsManifest(cfg, patientId, sessionEntry) {
   const { account, container, sas } = cfg;
   let prev = await getBlobJson(account, container, path, sas);
   const sessions = Array.isArray(prev?.sessions) ? prev.sessions : [];
+  const existing = sessions.find((s) => String(s.sessionId) === String(sessionEntry.sessionId));
   const filtered = sessions.filter((s) => String(s.sessionId) !== String(sessionEntry.sessionId));
-  const next = [sessionEntry, ...filtered].slice(0, 100);
+  // Preserve existing videoPath / drawingPath if the new entry doesn't have them
+  // (happens when triggerAzureShare re-uploads only the drawing, not the video)
+  const merged = {
+    ...sessionEntry,
+    videoPath: sessionEntry.videoPath ?? existing?.videoPath ?? null,
+    drawingPath: sessionEntry.drawingPath ?? existing?.drawingPath ?? null,
+  };
+  const next = [merged, ...filtered].slice(0, 100);
   const doc = {
     patientId,
     sessions: next,
@@ -135,6 +143,17 @@ export async function uploadSessionReplayToAzure({
 
   if (!videoPath && !drawingPath) return { ok: false, reason: 'all_uploads_failed' };
 
+  // If this call has no video, preserve the existing videoPath from latest-replay.json
+  let preservedVideoPath = videoPath;
+  let preservedDrawingPath = drawingPath;
+  if (!videoPath || !drawingPath) {
+    const latestExisting = await getBlobJson(account, container, `${patientId}/latest-replay.json`, sas);
+    if (latestExisting && String(latestExisting.sessionId) === String(sessionId)) {
+      if (!videoPath) preservedVideoPath = latestExisting.videoPath ?? null;
+      if (!drawingPath) preservedDrawingPath = latestExisting.drawingPath ?? null;
+    }
+  }
+
   const latest = {
     patientId,
     sessionId,
@@ -143,8 +162,8 @@ export async function uploadSessionReplayToAzure({
     sessionDate: meta?.sessionDate ?? new Date().toISOString(),
     stressScore: meta?.stressScore ?? null,
     patientName: meta?.patientName ?? null,
-    videoPath,
-    drawingPath,
+    videoPath: preservedVideoPath,
+    drawingPath: preservedDrawingPath,
     source: 'voicecanvas',
   };
 
@@ -155,8 +174,8 @@ export async function uploadSessionReplayToAzure({
 
   const sessionEntry = {
     sessionId,
-    videoPath,
-    drawingPath,
+    videoPath: preservedVideoPath,
+    drawingPath: preservedDrawingPath,
     promptTitle: meta?.promptTitle ?? '',
     promptId: meta?.promptId ?? '',
     sessionDate: latest.sessionDate,
