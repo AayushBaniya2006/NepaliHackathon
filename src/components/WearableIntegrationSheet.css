@@ -1,0 +1,206 @@
+/* Wearable / Apple Health integration sheet — matches DoctorSelector sheet rhythm */
+
+.wis-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 7, 18, 0.65);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  backdrop-filter: blur(4px);
+}
+
+.wis-sheet {
+  width: 100%;
+  max-height: 88vh;
+  background: var(--bg-primary);
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.25);
+}
+
+.wis-handle {
+  width: 40px;
+  height: 4px;
+  background: var(--gray-200);
+  border-radius: var(--radius-full);
+  margin: 12px auto 0;
+  flex-shrink: 0;
+}
+
+.wis-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--space-lg) var(--space-xl) var(--space-md);
+  flex-shrink: 0;
+}
+
+.wis-header-text {
+  flex: 1;
+  padding-right: var(--space-lg);
+}
+
+.wis-title {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.wis-subtitle {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  font-family: var(--font-body);
+  font-weight: 500;
+}
+
+.wis-close {
+  background: var(--gray-100);
+  border: none;
+  border-radius: var(--radius-full);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--gray-600);
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.wis-close:hover {
+  background: var(--gray-200);
+}
+
+.wis-scroll {
+  overflow-y: auto;
+  padding: 0 var(--space-xl) var(--space-xl);
+  flex: 1;
+}
+
+.wis-platforms {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.wis-platform {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gray-100);
+  background: var(--bg-secondary, #fafafa);
+}
+
+.wis-platform-main {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  flex: 1;
+  min-width: 0;
+}
+
+.wis-platform-icon-slot {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  min-height: 34px;
+}
+
+.wis-platform-logo {
+  display: block;
+  object-fit: contain;
+  width: 28px;
+  height: auto;
+  max-height: 34px;
+}
+
+.wis-platform-logo--apple {
+  /* Slight optical lift so the bitten-apple mark aligns with text */
+  margin-top: 1px;
+}
+
+.wis-platform-emoji {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.wis-enable-btn {
+  flex-shrink: 0;
+  align-self: center;
+  margin-top: 2px;
+  padding: 8px 18px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  border: 1.5px solid var(--text-primary, #1a1a1a);
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #1a1a1a);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.wis-enable-btn:hover {
+  background: var(--gray-100, #f3f4f6);
+}
+
+.wis-enable-btn--on {
+  border-color: var(--success, #059669);
+  background: rgba(5, 150, 105, 0.1);
+  color: var(--success, #047857);
+}
+
+.wis-enable-btn--on:hover {
+  background: rgba(5, 150, 105, 0.16);
+}
+
+.wis-platform-body h3 {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+}
+
+.wis-platform-body p {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.45;
+  font-weight: 500;
+}
+
+.wis-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.wis-actions .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.wis-foot {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: var(--space-md);
+  line-height: 1.45;
+}

@@ -7,6 +7,7 @@ import { useStorage } from '../hooks/useStorage';
 import { useElevenLabs } from '../hooks/useElevenLabs';
 import { isAzureUploadConfigured, uploadSessionReplayToAzure } from '../utils/azureBlob';
 import DoctorSelector from '../components/DoctorSelector';
+import WearableIntegrationSheet from '../components/WearableIntegrationSheet';
 import './SessionResults.css';
 
 const VOICECANVAS_PATIENT_ID = import.meta.env.VITE_VOICECANVAS_PATIENT_ID?.trim() || 'pt-001';
@@ -23,6 +24,7 @@ export default function SessionResults() {
   const [voiceLang, setVoiceLang] = useState('patient'); // 'patient' | 'en'
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showDoctorSelector, setShowDoctorSelector] = useState(false);
+  const [showWearableSheet, setShowWearableSheet] = useState(false);
   const [connectedDoctor, setConnectedDoctor] = useState(null); // doctor object after connecting
 
   useEffect(() => {
@@ -386,6 +388,13 @@ export default function SessionResults() {
           <button className="btn btn-secondary" onClick={handleDownloadPDF}>
             Download Clinical PDF
           </button>
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => setShowWearableSheet(true)}
+          >
+            Add to Health & wearables
+          </button>
         </motion.div>
 
         <p className="sr-disclaimer">
@@ -400,6 +409,18 @@ export default function SessionResults() {
             stressScore={score}
             onClose={() => setShowDoctorSelector(false)}
             onConnect={handleConnectDoctor}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showWearableSheet && (
+          <WearableIntegrationSheet
+            onClose={() => setShowWearableSheet(false)}
+            result={result}
+            canvasImage={canvasImage}
+            profile={profile}
+            patientId={VOICECANVAS_PATIENT_ID}
           />
         )}
       </AnimatePresence>
