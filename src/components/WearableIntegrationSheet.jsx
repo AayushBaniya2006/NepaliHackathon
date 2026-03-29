@@ -115,10 +115,10 @@ export default function WearableIntegrationSheet({ onClose, result, canvasImage,
 
         <div className="wis-header">
           <div className="wis-header-text">
-            <h2 className="wis-title">Health & wearables</h2>
+            <h2 className="wis-title">Health apps & wearables</h2>
             <p className="wis-subtitle">
-              Connect this session to Apple Health, Google Fit, and other wearable platforms. Browsers cannot open HealthKit
-              directly—use exports for your care team or a companion app.
+              Bridge this session to Apple Health, Google Fit, and other devices. The web app cannot open HealthKit
+              directly—download exports below for your clinician or a companion app.
             </p>
           </div>
           <button type="button" className="wis-close" onClick={onClose} aria-label="Close">

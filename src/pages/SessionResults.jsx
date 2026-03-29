@@ -152,7 +152,7 @@ export default function SessionResults() {
           animate={{ opacity: 1, y: 0 }}
         >
           <button className="btn btn-sm btn-ghost" onClick={() => navigate('/dashboard')}>
-            ← Dashboard
+            ← My dashboard
           </button>
           <div className="sr-brand">
             <span>🎨</span> MindCanvas
@@ -367,7 +367,7 @@ export default function SessionResults() {
           transition={{ delay: 0.6 }}
         >
           <button className="btn btn-primary btn-lg" onClick={() => navigate('/dashboard')}>
-            ← Back to Dashboard
+            ← Return to my dashboard
           </button>
 
           {/* Doctor connect button — Uber-style trigger */}
@@ -383,22 +383,22 @@ export default function SessionResults() {
           </button>
 
           <button className="btn btn-outline" onClick={() => handleSpeak(voiceLang)}>
-            Listen Again
+            Play summary again
           </button>
           <button className="btn btn-secondary" onClick={handleDownloadPDF}>
-            Download Clinical PDF
+            Save SOAP note as PDF
           </button>
           <button
             type="button"
             className="btn btn-outline"
             onClick={() => setShowWearableSheet(true)}
           >
-            Add to Health & wearables
+            Connect to health apps & wearables
           </button>
         </motion.div>
 
         <p className="sr-disclaimer">
-          Demo only — Not a medical diagnosis. Results should be reviewed by a licensed clinician.
+          Educational demo — not a diagnosis or treatment plan. Always review with a licensed clinician.
         </p>
       </div>
 
