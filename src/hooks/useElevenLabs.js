@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { isElevenLabsClientConfigured, elevenLabsTtsDirect } from '../utils/elevenLabsClient';
 
 const VOICES = [
   { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', description: 'Warm & gentle' },
@@ -73,11 +74,19 @@ export function useElevenLabs() {
     if (opts.languageCode) payload.languageCode = opts.languageCode;
 
     try {
-      const response = await makeRequest('/api/voice/speak', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const useClientKey = isElevenLabsClientConfigured();
+      const response = useClientKey
+        ? await elevenLabsTtsDirect({
+            text,
+            voiceId,
+            modelId: payload.modelId,
+            languageCode: payload.languageCode,
+          })
+        : await makeRequest('/api/voice/speak', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
 
       if (response.ok) {
         const blob = await response.blob();
