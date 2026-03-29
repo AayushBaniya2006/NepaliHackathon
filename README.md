@@ -1,8 +1,13 @@
 # MindHaven- Client Side
 
-**Live Demo**:Client Side https://voicecanvas-one.vercel.app : 
-Doctor Saas : https://nepal-hackathon-doctor-side.vercel.app/dashboard
-Community Shareable Link" https://voicecanvas-one.vercel.app/care/demo-patient
+## Live demo
+
+- **Client (patient app):** [https://voicecanvas-one.vercel.app](https://voicecanvas-one.vercel.app)
+- **Doctor SaaS (dashboard):** [https://nepal-hackathon-doctor-side.vercel.app/dashboard](https://nepal-hackathon-doctor-side.vercel.app/dashboard)
+- **Community shareable link (Care Board):** [https://voicecanvas-one.vercel.app/care/demo-patient](https://voicecanvas-one.vercel.app/care/demo-patient)
+- **Doctor-side repository:** [https://github.com/actionproject-madhav/Nepal_Hackathon_Doctor_Side](https://github.com/actionproject-madhav/Nepal_Hackathon_Doctor_Side)
+
+---
 
 
 Mental health assessment platform that converts gesture-based drawings into clinical evaluations with multilingual AI voice feedback. Built for millions of people who struggle with verbal communication due to language barriers, trauma, autism, anxiety, or cultural stigma.
