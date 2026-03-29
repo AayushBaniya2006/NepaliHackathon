@@ -51,7 +51,16 @@ function pickRecorderMimeType() {
   return '';
 }
 
-function startWebcamRecording(stream, recorderRef, chunksRef) {
+function emotionEmojiForRecord(emotion) {
+  const map = {
+    happy: '😊', sad: '😢', angry: '😠', fearful: '😨',
+    disgusted: '🤢', surprised: '😮', neutral: '😐',
+  };
+  return map[emotion] || '💭';
+}
+
+/** Raw camera stream only (fallback). */
+function startWebcamRecordingRaw(stream, recorderRef, chunksRef) {
   if (!stream || typeof MediaRecorder === 'undefined') return;
   chunksRef.current = [];
   const mimeType = pickRecorderMimeType();
@@ -70,7 +79,112 @@ function startWebcamRecording(stream, recorderRef, chunksRef) {
   }
 }
 
-function stopWebcamRecording(recorderRef, chunksRef) {
+/**
+ * Record canvas stream: each frame mirrors the live video (like the UI) and draws
+ * the same emotion sticker (emoji + label + %) as the side panel, burned into the video.
+ */
+function startWebcamRecordingComposed(
+  stream,
+  videoEl,
+  canvasEl,
+  emotionRef,
+  recordingActiveRef,
+  rafIdRef,
+  recorderRef,
+  chunksRef,
+) {
+  if (!stream || typeof MediaRecorder === 'undefined') return;
+  if (!videoEl || !canvasEl) {
+    startWebcamRecordingRaw(stream, recorderRef, chunksRef);
+    return;
+  }
+
+  chunksRef.current = [];
+  recordingActiveRef.current = true;
+
+  const tick = () => {
+    if (!recordingActiveRef.current) return;
+    rafIdRef.current = requestAnimationFrame(tick);
+    const v = videoEl;
+    const canvas = canvasEl;
+    if (!v || v.readyState < 2) return;
+    const w = v.videoWidth || 1280;
+    const h = v.videoHeight || 720;
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.save();
+    ctx.translate(w, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(v, 0, 0, w, h);
+    ctx.restore();
+
+    const em = emotionRef?.current;
+    if (em && em.emotion && em.emotion !== 'no_face') {
+      const emoji = emotionEmojiForRecord(em.emotion);
+      const label = em.emotion.charAt(0).toUpperCase() + em.emotion.slice(1);
+      const pct = Math.round((em.confidence ?? 0) * 100);
+      const pad = Math.max(12, Math.round(w * 0.012));
+      const fontSize = Math.max(18, Math.round(w * 0.028));
+      ctx.font = `600 ${fontSize}px system-ui, -apple-system, BlinkMacSystemFont, sans-serif`;
+      const line = `${emoji}  ${label}  ${pct}%`;
+      const metrics = ctx.measureText(line);
+      const boxPad = pad;
+      const boxW = metrics.width + boxPad * 2;
+      const boxH = fontSize + boxPad * 1.5;
+      const bx = w - boxW - pad;
+      const by = h - boxH - pad;
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(bx, by, boxW, boxH);
+      ctx.fillStyle = '#fff';
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      ctx.fillText(line, bx + boxPad, by + boxH / 2);
+    }
+  };
+
+  rafIdRef.current = requestAnimationFrame(tick);
+
+  let canvasStream;
+  try {
+    canvasStream = canvasEl.captureStream(30);
+  } catch (e) {
+    console.warn('captureStream failed, using raw camera', e);
+    recordingActiveRef.current = false;
+    if (rafIdRef.current != null) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = null;
+    startWebcamRecordingRaw(stream, recorderRef, chunksRef);
+    return;
+  }
+
+  const mimeType = pickRecorderMimeType();
+  try {
+    const mr = mimeType
+      ? new MediaRecorder(canvasStream, { mimeType })
+      : new MediaRecorder(canvasStream);
+    mr.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+    };
+    mr.start(1000);
+    recorderRef.current = mr;
+  } catch (e) {
+    console.warn('Webcam recording not started:', e);
+    recordingActiveRef.current = false;
+    if (rafIdRef.current != null) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = null;
+    recorderRef.current = null;
+  }
+}
+
+function stopWebcamRecording(recorderRef, chunksRef, recordingActiveRef, rafIdRef) {
+  if (recordingActiveRef) recordingActiveRef.current = false;
+  if (rafIdRef?.current != null) {
+    cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = null;
+  }
   const mr = recorderRef.current;
   recorderRef.current = null;
   if (!mr) return Promise.resolve(null);
@@ -93,7 +207,12 @@ function stopWebcamRecording(recorderRef, chunksRef) {
   });
 }
 
-function abortWebcamRecording(recorderRef) {
+function abortWebcamRecording(recorderRef, recordingActiveRef, rafIdRef) {
+  if (recordingActiveRef) recordingActiveRef.current = false;
+  if (rafIdRef?.current != null) {
+    cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = null;
+  }
   const mr = recorderRef.current;
   recorderRef.current = null;
   if (mr && mr.state === 'recording') {
@@ -112,6 +231,10 @@ export default function DrawingSession({ promptOverride }) {
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const recordCanvasRef = useRef(null);
+  const emotionForRecordRef = useRef(null);
+  const recordingActiveRef = useRef(false);
+  const recordRafIdRef = useRef(null);
 
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState(null);
@@ -186,6 +309,10 @@ export default function DrawingSession({ promptOverride }) {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    emotionForRecordRef.current = currentEmotion;
+  }, [currentEmotion]);
+
   const handleGesture = useCallback(async (detectedGesture, fingertip, confidence) => {
     setGesture(detectedGesture);
     if (confidence !== undefined) setGestureConfidence(confidence);
@@ -214,7 +341,7 @@ export default function DrawingSession({ promptOverride }) {
     setAnalyzeStage('Stopping camera recording...');
 
     const sessionId = Date.now();
-    const videoBlob = await stopWebcamRecording(mediaRecorderRef, recordedChunksRef);
+    const videoBlob = await stopWebcamRecording(mediaRecorderRef, recordedChunksRef, recordingActiveRef, recordRafIdRef);
 
     setAnalyzeStage('Capturing drawing...');
     const dataUrl = canvasRef.current?.toDataURL();
@@ -299,6 +426,7 @@ export default function DrawingSession({ promptOverride }) {
             videoBlob: videoBlob && videoBlob.size > 0 ? videoBlob : null,
             canvasBlob: canvasBlob instanceof Blob && canvasBlob.size > 0 ? canvasBlob : null,
             canvasDataUrl: dataUrl,
+            emotionTimeline,
             meta: {
               promptTitle: prompt.title,
               promptId,
@@ -398,7 +526,16 @@ export default function DrawingSession({ promptOverride }) {
             setCanvasDimensions({ width: videoRef.current.videoWidth, height: videoRef.current.videoHeight });
             if (!webcamRecordingStartedRef.current) {
               webcamRecordingStartedRef.current = true;
-              startWebcamRecording(stream, mediaRecorderRef, recordedChunksRef);
+              startWebcamRecordingComposed(
+                stream,
+                videoRef.current,
+                recordCanvasRef.current,
+                emotionForRecordRef,
+                recordingActiveRef,
+                recordRafIdRef,
+                mediaRecorderRef,
+                recordedChunksRef,
+              );
             }
           };
         }
@@ -410,7 +547,7 @@ export default function DrawingSession({ promptOverride }) {
     initCamera();
     return () => {
       webcamRecordingStartedRef.current = false;
-      abortWebcamRecording(mediaRecorderRef);
+      abortWebcamRecording(mediaRecorderRef, recordingActiveRef, recordRafIdRef);
       stream?.getTracks().forEach(t => t.stop());
       stopTracking();
       stopEmotionTracking();
@@ -588,6 +725,8 @@ export default function DrawingSession({ promptOverride }) {
                   className={`ds-camera-feed ${mode === 'sign' ? 'ds-sign-cam' : ''}`}
                   autoPlay playsInline muted style={{ transform: 'scaleX(-1)' }}
                 />
+                {/* Off-screen canvas: composited feed + emotion sticker for MediaRecorder */}
+                <canvas ref={recordCanvasRef} className="ds-record-canvas" aria-hidden />
                 {mode === 'draw' && canvasDimensions.width > 0 && (
                   <DrawingCanvas ref={canvasRef}
                     width={canvasDimensions.width} height={canvasDimensions.height}

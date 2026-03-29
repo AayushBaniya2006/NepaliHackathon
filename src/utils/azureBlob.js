@@ -65,6 +65,7 @@ async function mergeSessionsManifest(cfg, patientId, sessionEntry) {
     ...sessionEntry,
     videoPath: sessionEntry.videoPath ?? existing?.videoPath ?? null,
     drawingPath: sessionEntry.drawingPath ?? existing?.drawingPath ?? null,
+    emotionsPath: sessionEntry.emotionsPath ?? existing?.emotionsPath ?? null,
   };
   const next = [merged, ...filtered].slice(0, 100);
   const doc = {
@@ -80,6 +81,7 @@ async function mergeSessionsManifest(cfg, patientId, sessionEntry) {
  * @param {Blob | null} videoBlob - Webcam recording
  * @param {Blob | null} [canvasBlob] - PNG from canvas.toBlob() (preferred; avoids fetch(dataURL) failures on large canvases)
  * @param {string} [canvasDataUrl] - Fallback if canvasBlob not provided
+ * @param {Array<{time?: number, emotion?: string, confidence?: number, timestamp?: number}>} [emotionTimeline] - Live facial emotions (saved next to video)
  */
 export async function uploadSessionReplayToAzure({
   patientId,
@@ -88,6 +90,7 @@ export async function uploadSessionReplayToAzure({
   canvasBlob,
   canvasDataUrl,
   meta,
+  emotionTimeline,
 }) {
   const cfg = getAzureBlobConfig();
   if (!cfg) return { ok: false, reason: 'no_config' };
@@ -142,16 +145,40 @@ export async function uploadSessionReplayToAzure({
     }
   }
 
+  let emotionsPath = null;
+  if (Array.isArray(emotionTimeline) && emotionTimeline.length > 0) {
+    try {
+      const ep = `${basePath}/emotions-timeline.json`;
+      const emotionDoc = {
+        patientId,
+        sessionId,
+        sessionDate: meta?.sessionDate ?? new Date().toISOString(),
+        sampleIntervalSec: 3,
+        samples: emotionTimeline,
+      };
+      await putBlob(
+        buildBlobUrl(account, container, ep, sas),
+        new Blob([JSON.stringify(emotionDoc, null, 0)], { type: 'application/json' }),
+        'application/json'
+      );
+      emotionsPath = ep;
+    } catch (e) {
+      console.warn('Azure: emotions timeline upload failed', e);
+    }
+  }
+
   if (!videoPath && !drawingPath) return { ok: false, reason: 'all_uploads_failed' };
 
-  // If this call has no video, preserve the existing videoPath from latest-replay.json
+  // If this call omits video/drawing/emotions, preserve paths from latest-replay.json for the same session
   let preservedVideoPath = videoPath;
   let preservedDrawingPath = drawingPath;
-  if (!videoPath || !drawingPath) {
+  let preservedEmotionsPath = emotionsPath;
+  if (!videoPath || !drawingPath || !emotionsPath) {
     const latestExisting = await getBlobJson(account, container, `${patientId}/latest-replay.json`, sas);
     if (latestExisting && String(latestExisting.sessionId) === String(sessionId)) {
       if (!videoPath) preservedVideoPath = latestExisting.videoPath ?? null;
       if (!drawingPath) preservedDrawingPath = latestExisting.drawingPath ?? null;
+      if (!emotionsPath) preservedEmotionsPath = latestExisting.emotionsPath ?? null;
     }
   }
 
@@ -165,6 +192,7 @@ export async function uploadSessionReplayToAzure({
     patientName: meta?.patientName ?? null,
     videoPath: preservedVideoPath,
     drawingPath: preservedDrawingPath,
+    emotionsPath: preservedEmotionsPath,
     source: 'voicecanvas',
   };
 
@@ -177,6 +205,7 @@ export async function uploadSessionReplayToAzure({
     sessionId,
     videoPath: preservedVideoPath,
     drawingPath: preservedDrawingPath,
+    emotionsPath: preservedEmotionsPath,
     promptTitle: meta?.promptTitle ?? '',
     promptId: meta?.promptId ?? '',
     sessionDate: latest.sessionDate,
@@ -185,5 +214,5 @@ export async function uploadSessionReplayToAzure({
   };
   await mergeSessionsManifest(cfg, patientId, sessionEntry);
 
-  return { ok: true, videoPath, drawingPath };
+  return { ok: true, videoPath, drawingPath, emotionsPath: preservedEmotionsPath };
 }

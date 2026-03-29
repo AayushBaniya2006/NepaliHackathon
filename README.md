@@ -13,12 +13,12 @@ Over 450 million people globally suffer from mental health conditions, yet the m
 ### Key Features
 
 - **Hand Gesture Drawing** -- Patients draw on a transparent canvas overlaying their live camera feed using MediaPipe hand tracking. Index finger draws, pinch erases, fist clears, and open hand submits for analysis. No physical contact with the screen is required.
-- **AI Drawing Analysis** -- Each drawing is analyzed by Anthropic Claude for color distribution, line pressure patterns, spatial composition, symbol detection, and emotional markers. The system produces a stress score (0-10), clinical SOAP note, DSM-5 code suggestions, personal statement interpretation, and indicator breakdowns.
+- **AI Drawing Analysis** -- Each drawing is analyzed with **OpenAI GPT-4o (vision)** via a server proxy: color distribution, line pressure, spatial composition, symbolic content, and (optionally) client-side **fractal-dimension** metrics. Outputs include a stress score (0-10), clinical-style note fields, DSM-style code suggestion, multilingual personal statement, and indicator breakdowns. **Facial emotion** (live) uses **face-api.js** (TinyFaceDetector + face expressions) on the webcam feed; samples feed the LLM context and can be stored with the session.
 - **Multilingual Support** -- Full internationalization via i18next with English and Nepali locales. The personal statement can be spoken aloud in the patient's language using ElevenLabs text-to-speech, or translated to English for clinician review.
-- **Sign Language Recognition** -- An alternative input mode where patients sign at the camera. Claude interprets ASL/BSL gestures captured at 3-second intervals and assembles them into coherent clinical communications.
+- **Sign Language Recognition** -- An alternative input mode where patients sign at the camera. Frames are sent to the same **OpenAI**-backed analysis route for interpretation on an interval.
 - **Doctor Discovery and Connection** -- A volunteer doctor directory featuring vetted clinicians from 30+ countries who offer free or sliding-scale consultations. Includes a "Women Mode" toggle that restricts results to women clinicians only, with a full pink UI theme, for patients (particularly abuse or trauma survivors) who feel safer sharing with women providers.
 - **NPI Registry Integration** -- Live search against the US National Provider Identifier registry to find licensed US-based clinicians by name, specialty, or state.
-- **Session Replay with Azure Blob** -- Completed drawing sessions, including canvas snapshots and metadata, are uploaded to Azure Blob Storage. Clinicians using the companion Doctor SaaS application can replay these sessions frame-by-frame.
+- **Session Replay with Azure Blob** -- Completed sessions can upload **webcam replay** (composited video includes live **emotion sticker** overlay), **drawing PNG**, and **`emotions-timeline.json`** (sampled facial emotions) to Azure Blob Storage, plus metadata manifests for clinician review.
 - **Care Board** -- A personal board of supportive notes from family, friends, and community members. Anyone with a shareable link (e.g., /care/demo-patient) can leave a text note or photo that appears on the patient's board. No login required for senders.
 - **Brain Activity Visualization** -- A real-time simulated brain activity display showing which cognitive regions are activated during drawing, providing biofeedback-style engagement.
 - **Insurance Form Automation** -- Pre-populated CMS-1500 insurance claim forms using session data, parity analysis, and DSM-5 codes extracted from the AI assessment.
@@ -40,7 +40,7 @@ voicecanvas/
 |-- package.json                   # Dependencies and scripts
 |-- .env.example                   # Environment variable template
 |-- server/                        # Express.js backend
-|   |-- index.js                   # API server (Claude proxy, ElevenLabs proxy, auth)
+|   |-- index.js                   # API server (OpenAI proxy, ElevenLabs TTS proxy, auth, sessions)
 |   |-- db.js                      # MongoDB connection manager
 |   |-- ws.js                      # WebSocket server for real-time features
 |   |-- middleware/                 # Auth middleware (JWT)
@@ -81,14 +81,18 @@ voicecanvas/
 |   |   |-- WearableIntegration.*  # Wearable data sheet
 |   |   +-- HoldTimerRing.jsx      # Circular progress hold indicator
 |   |-- hooks/
-|   |   |-- useMediaPipe.js        # MediaPipe hand landmark detection
-|   |   |-- useAnalysis.js         # Drawing analysis via Claude API
-|   |   |-- useClaude.js           # Claude API communication layer
-|   |   |-- useElevenLabs.js       # ElevenLabs TTS integration
-|   |   +-- useStorage.js          # localStorage persistence for sessions
+|   |   |-- useMediaPipe.js        # MediaPipe Hand Landmarker (gestures / drawing)
+|   |   |-- useFaceEmotion.js      # face-api.js: live facial expression → emotion label
+|   |   |-- useAnalysis.js         # Drawing analysis: GPT-4o + fractal + sketch stub
+|   |   |-- useLlm.js              # LLM helpers (sign / misc; server routes do vision JSON)
+|   |   |-- useElevenLabs.js       # ElevenLabs TTS via `/api/voice/speak`
+|   |   +-- useStorage.js          # localStorage + optional API sync for sessions
 |   |-- utils/
-|   |   |-- azureBlob.js           # Azure Blob Storage upload/download
-|   |   |-- claudePrompts.js       # Structured prompts for Claude analysis
+|   |   |-- azureBlob.js           # Azure Blob: video, drawing, emotions JSON, manifests
+|   |   |-- fractalAnalysis.js     # Client-side fractal dimension / complexity heuristics
+|   |   |-- doodleRecognition.js   # Sketch path stub (ml5/DoodleNet disabled; avoid TF conflicts)
+|   |   |-- audioUnlock.js         # Browser autoplay priming for TTS
+|   |   |-- llmPrompts.js          # Prompt strings for LLM-backed flows
 |   |   |-- drawingPrompts.js      # Clinical drawing exercise definitions
 |   |   |-- stamps.js              # Stamp shape definitions and renderers
 |   |   |-- pdfExport.js           # SOAP note PDF generation (jsPDF)
@@ -106,18 +110,18 @@ voicecanvas/
 
 ### Prerequisites
 
-- Node.js version 18 or higher
-- npm version 9 or higher
-- A webcam (required for hand gesture drawing; mouse fallback is available)
-- Anthropic Claude API key (required for drawing analysis)
-- ElevenLabs API key (optional, for text-to-speech)
-- Azure Blob Storage account (optional, for session replay sharing with clinicians)
+- Node.js 18+ and npm 9+
+- Webcam (hand gestures + optional emotion detection; mouse drawing fallback if camera unavailable)
+- **OpenAI API key** (`OPENAI_API_KEY`) — required for drawing analysis, sign frames, and related JSON routes
+- **MongoDB** running locally (default `mongodb://localhost:27017/`) or `MONGODB_URI` — required for the Express server to start (sessions, auth persistence)
+- **ElevenLabs API key** (optional) — multilingual TTS (e.g. Nepali with `eleven_v3` + `language_code` on server)
+- **Azure Blob Storage** (optional) — session replay uploads (`VITE_*` variables in `.env`)
 
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/AceSen1a-BTT/MindCanvas-Patient.git
-cd MindCanvas-Patient
+git clone <your-fork-or-repo-url>
+cd NepaliHackathon   # or your project folder name
 ```
 
 ### Step 2: Install Dependencies
@@ -134,14 +138,15 @@ Copy the example environment file and fill in your API keys:
 cp .env.example .env
 ```
 
-Edit `.env` with the following values:
+Edit `.env` (see `.env.example`) — at minimum:
 
 ```
-CLAUDE_API_KEY=sk-ant-your-anthropic-api-key
-ELEVENLABS_API_KEY=xi-your-elevenlabs-key (optional)
-JWT_SECRET=generate-a-random-32-byte-base64-string
+OPENAI_API_KEY=sk-...
+ELEVENLABS_API_KEY=xi-...          # optional, for TTS
+JWT_SECRET=...                     # required in production for auth
 PORT=3001
 ALLOWED_ORIGINS=http://localhost:5173
+MONGODB_URI=mongodb://localhost:27017/   # or Atlas
 ```
 
 For Azure Blob Storage integration (optional), also add to a `.env` file or directly in the Vite config:
@@ -187,71 +192,99 @@ npm run preview
 
 ## Dependencies and Tools Used
 
-### Frontend
+### Frontend (npm)
 
 | Dependency | Purpose |
 |---|---|
 | React 19 | Core UI framework |
 | React Router DOM 7 | Client-side routing |
-| Framer Motion 12 | Page transitions, gesture animations, layout animations |
-| MediaPipe Tasks Vision | Real-time hand landmark detection via webcam |
-| i18next / react-i18next | Internationalization (English, Nepali) |
-| jsPDF | Client-side PDF generation for clinical notes |
+| Framer Motion 12 | Page transitions and UI motion |
+| **@mediapipe/tasks-vision** | **HandLandmarker** — hand landmarks → draw / erase / gesture classify |
+| **face-api.js** | **TinyFaceDetector + faceExpressionNet** (models loaded from CDN) — live facial emotion labels |
+| i18next / react-i18next | Internationalization (e.g. English, Nepali) |
+| jsPDF | Client-side PDF export for clinical-style notes |
+| **Web platform APIs** | **`MediaRecorder`**, **`canvas.captureStream()`** — session webcam replay with emotion overlay composited on a hidden canvas |
 
-### Backend
+### Client-side analysis (no extra npm ML stack)
+
+| Module | Purpose |
+|---|---|
+| `src/utils/fractalAnalysis.js` | Box-counting **fractal dimension** and related heuristics on the drawing canvas (feeds analysis context / mock enrichment) |
+| `src/utils/doodleRecognition.js` | Stub / disabled DoodleNet path (TensorFlow conflicts with face-api avoided; use server vision + fractals) |
+
+### Backend (npm)
 
 | Dependency | Purpose |
 |---|---|
-| Express 5 | API server for Claude and ElevenLabs proxy calls |
+| Express 5 | REST API: `/api/analyze/*`, `/api/voice/speak`, auth, sessions, storage proxies |
 | Helmet | HTTP security headers |
-| CORS | Cross-origin request handling |
-| express-rate-limit | API rate limiting |
-| dotenv | Environment variable management |
-| jsonwebtoken | JWT authentication |
-| MongoDB driver | Database persistence (optional) |
-| ws | WebSocket server for real-time features |
+| CORS | Cross-origin handling for Vite dev server |
+| express-rate-limit | Throttle analyze / voice routes |
+| dotenv | Load `.env` for Node |
+| jsonwebtoken | JWT for protected routes |
+| **mongodb** | **MongoDB** — users, sessions, analytics sync when API is used |
+| ws | WebSocket server (`server/ws.js`) |
 
-### External APIs
+### External APIs and cloud services
 
 | Service | Usage |
 |---|---|
-| Anthropic Claude API | Drawing analysis, sign language interpretation, clinical note generation |
-| ElevenLabs API | Text-to-speech for personal statement playback |
-| Azure Blob Storage | Session replay upload and retrieval for clinician review |
-| NPI Registry API | US doctor search by name, specialty, and state |
+| **OpenAI** (`gpt-4o`, Chat Completions + vision image URL) | Drawing interpretation JSON, sign-frame interpretation, structured clinical-style output (`server/routes/analyze.js`) |
+| **ElevenLabs** | TTS proxy at `POST /api/voice/speak` — e.g. **eleven_v3** + `language_code` for Nepali (`ne`) |
+| **Azure Blob Storage** | Optional upload of replay video, drawing PNG, `emotions-timeline.json`, `latest-replay.json`, `sessions-manifest.json` (`src/utils/azureBlob.js`) |
+| **NPI Registry** (via app proxy) | US provider lookup in Find Doctor flow |
+| **Spotify** | *Not integrated in this repo*; search/playback would use Spotify Web API separately |
 
-### Development Tools
+### Development tools
 
 | Tool | Purpose |
 |---|---|
-| Vite 8 | Build tool and development server with hot module replacement |
-| ESLint 9 | JavaScript and React linting |
-| concurrently | Run frontend and backend in parallel during development |
+| Vite 8 | Dev server, HMR, proxy `/api` → backend |
+| ESLint 9 | Linting |
+| concurrently | `npm run dev:all` — Vite + Node server together |
+
+### Optional dev scripts
+
+| Path | Purpose |
+|---|---|
+| `scripts/test_elevenlabs_nepali.py` | Minimal ElevenLabs REST check (Nepali `language_code: ne`, `eleven_v3`) — requires `requests`, `python-dotenv` |
 
 
 ## Environment Variables Reference
 
 | Variable | Required | Description |
 |---|---|---|
-| `CLAUDE_API_KEY` | Yes | Anthropic API key for drawing analysis |
-| `ELEVENLABS_API_KEY` | No | ElevenLabs API key for text-to-speech |
-| `JWT_SECRET` | Yes (for backend) | Secret for signing JWT tokens |
-| `PORT` | No | Backend server port (default: 3001) |
-| `ALLOWED_ORIGINS` | No | CORS allowed origins (default: http://localhost:5173) |
-| `VITE_AZURE_STORAGE_ACCOUNT` | No | Azure Storage account name |
-| `VITE_AZURE_STORAGE_CONTAINER` | No | Azure Blob container name |
-| `VITE_AZURE_STORAGE_SAS` | No | Azure SAS token for blob access |
-| `VITE_VOICECANVAS_PATIENT_ID` | No | Patient identifier for session uploads |
+| `OPENAI_API_KEY` | Yes (for AI routes) | OpenAI key for GPT-4o vision + text routes |
+| `ELEVENLABS_API_KEY` or `ELEVEN_LABS_API_KEY` | No | ElevenLabs TTS (`/api/voice/speak`) |
+| `ELEVENLABS_MODEL_ID` | No | Server default TTS model (code defaults toward `eleven_v3` for multilingual) |
+| `JWT_SECRET` | Production | JWT signing secret |
+| `PORT` | No | API port (default `3001`) |
+| `ALLOWED_ORIGINS` | No | CORS allowlist (e.g. `http://localhost:5173`) |
+| `MONGODB_URI` | For server | Mongo connection string (default local) |
+| `MONGODB_PATIENTS_DB` | No | Database name override |
+| `VITE_AZURE_STORAGE_*` / `VITE_VOICECANVAS_PATIENT_ID` | No | Azure replay uploads from the browser |
+| `VITE_TTS_PATIENT_MODEL_ID` | No | Frontend hint for patient-language TTS model |
+| `VITE_DEFAULT_PATIENT_LANGUAGE` | No | e.g. `ne` for hackathon demos |
+
+See **`.env.example`** for the full list and comments.
+
+### Further docs in this repo
+
+| File | Contents |
+|---|---|
+| `ADVANCED_ANALYSIS.md` | Deeper notes on analysis pipeline / metrics |
+| `MODELS_EXPLAINED.md` | Model and stack explanations |
+| `requirements.md`, `ai.md` | Legacy / planning notes (may lag the code) |
 
 ## How It Works
 
 1. **Onboarding** -- The patient selects their language, enters basic profile information, and optionally specifies their disability type and insurance status.
 
-2. **Drawing Session** -- The patient is given a clinically designed drawing prompt (e.g., "Fill this area with lines and colors that show your energy right now"). They draw on a transparent canvas overlaid on their live camera feed using hand gestures detected by MediaPipe.
+2. **Drawing Session** -- A drawing prompt is shown. The patient draws on a canvas over the live camera; **MediaPipe Hand Landmarker** maps hand landmarks to gestures. **face-api.js** runs on the video for live **facial expressions** (timeline sampled for analysis and optional Azure JSON). **Webcam recording** uses a composited canvas stream so **emotion labels appear burned into the replay video** alongside the mirror-corrected camera feed.
 
-3. **AI Analysis** -- When the patient submits the drawing, the canvas image is sent to Anthropic Claude. The AI evaluates color distribution percentages, line pressure indicators, spatial composition patterns, symbolic content, and emotional markers. It outputs a structured JSON response containing a stress score, clinical SOAP note, DSM-5 code suggestions, a personal statement (a first-person narrative of what the patient seems to be feeling), and quantified indicators.
+3. **AI Analysis** -- On submit, the image (and optional **emotion timeline** / fractal metadata from the client) is sent to the backend, which calls **OpenAI GPT-4o** with a vision + JSON schema style prompt. The model returns structured fields (stress score, notes, personal statements in patient language + English, etc.).
 
-4. **Results and Voice** -- The patient views their results including the stress score visualization, indicator breakdowns, personal statement, and clinical note. The personal statement can be read aloud in the patient's language via ElevenLabs.
+4. **Results and Voice** -- Results and clinical-style sections are shown; **ElevenLabs** can read the personal statement via the server proxy (`eleven_v3` + ISO language codes such as `ne` for Nepali where applicable).
 
 5. **Doctor Connection** -- The patient can send their session to a vetted volunteer doctor. Women Mode ensures trauma survivors can restrict their data to women clinicians only.
 

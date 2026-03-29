@@ -112,6 +112,7 @@ export default function SessionResults() {
         sessionId,
         videoBlob: null,
         canvasDataUrl: canvasImage,
+        emotionTimeline: latest?.emotionTimeline,
         meta: {
           promptTitle: prompt?.title ?? '',
           promptId: promptId ?? '',
