@@ -114,26 +114,13 @@ export default function DrawingSession({ promptOverride }) {
     if (confidence !== undefined) setGestureConfidence(confidence);
     if (mode !== 'draw') return;
 
-    const stampGestures = ['fingers_2', 'fingers_3', 'fingers_4'];
-    const drawLikeGestures = ['index_up', 'pinch', ...stampGestures];
+    const drawLikeGestures = ['index_up', 'pinch'];
 
     if (detectedGesture === 'index_up' && fingertip) {
       canvasRef.current?.drawAt(fingertip.x, fingertip.y);
     } else if (detectedGesture === 'pinch' && fingertip) {
       canvasRef.current?.eraseAt(fingertip.x, fingertip.y);
       canvasRef.current?.resetPrevPoint();
-    } else if (stampGestures.includes(detectedGesture) && fingertip) {
-      const stamp = getStampByGesture(detectedGesture);
-      if (stamp && !stampCooldownRef.current) {
-        stampCooldownRef.current = true;
-        canvasRef.current?.placeStamp(fingertip.x, fingertip.y, stamp.draw);
-        canvasRef.current?.resetPrevPoint();
-        setStampFeedbackName(stamp.name);
-        window.setTimeout(() => {
-          stampCooldownRef.current = false;
-        }, 350);
-        window.setTimeout(() => setStampFeedbackName(''), 1200);
-      }
     } else if (!drawLikeGestures.includes(detectedGesture)) {
       canvasRef.current?.resetPrevPoint();
     }
@@ -447,11 +434,9 @@ export default function DrawingSession({ promptOverride }) {
                   <>
                     <span className="ds-gpill"><span className="ds-gpill-dot" style={{background:'var(--teal-500)'}} />1 finger = Draw</span>
                     <span className="ds-gpill"><span className="ds-gpill-dot" style={{background:'var(--coral-500)'}} />Pinch = Erase</span>
-                    <span className="ds-gpill"><span className="ds-gpill-dot" style={{background:'var(--violet-500)'}} />2 = Person</span>
-                    <span className="ds-gpill"><span className="ds-gpill-dot" style={{background:'var(--violet-400)'}} />3 = Tree</span>
-                    <span className="ds-gpill"><span className="ds-gpill-dot" style={{background:'var(--sky-500)'}} />4 = Heart</span>
                     <span className="ds-gpill"><span className="ds-gpill-dot" style={{background:'var(--rose-500)'}} />Fist = Clear</span>
                     <span className="ds-gpill"><span className="ds-gpill-dot" style={{background:'var(--lime-500)'}} />5 = Submit</span>
+                    <span className="ds-gpill"><span className="ds-gpill-dot" style={{background:'var(--violet-500)'}} />Stamps = Click panel →</span>
                   </>
                 ) : (
                   <>
