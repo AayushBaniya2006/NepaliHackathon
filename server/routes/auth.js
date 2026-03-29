@@ -25,6 +25,7 @@ router.post('/register', async (req, res) => {
       created_at: new Date().toISOString(),
     };
     await db.collection('users').insertOne(user);
+    delete user._id;
 
     const token = generateToken({ id, role });
     res.json({ token, user });

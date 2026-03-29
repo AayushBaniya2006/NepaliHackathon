@@ -56,10 +56,10 @@ app.get('{*path}', (req, res) => {
   res.sendFile(join(__dirname, '..', 'dist', 'index.html'));
 });
 
-// WebSocket
-const ws = setupWebSocket(server);
-
 connectDB().then(() => {
+  // WebSocket setup after DB is ready so getMetrics() can use getDB()
+  setupWebSocket(server);
+
   server.listen(PORT, () => {
     console.log(`MindCanvas server running on port ${PORT}`);
   });

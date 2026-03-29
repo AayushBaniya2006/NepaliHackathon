@@ -36,8 +36,9 @@ router.put('/profile', async (req, res) => {
 // ── Sessions ─────────────────────────────────────────────
 router.get('/sessions', async (req, res) => {
   try {
+    if (!req.query.userId) return res.status(400).json({ error: 'userId query param required' });
     const db = getDB();
-    const filter = req.query.userId ? { userId: req.query.userId } : {};
+    const filter = { userId: req.query.userId };
     const sessions = await db.collection('patient_sessions')
       .find(filter)
       .sort({ timestamp: -1 })
@@ -68,8 +69,9 @@ router.post('/sessions', async (req, res) => {
 // ── Analytics ────────────────────────────────────────────
 router.get('/analytics', async (req, res) => {
   try {
+    if (!req.query.userId) return res.status(400).json({ error: 'userId query param required' });
     const db = getDB();
-    const filter = req.query.userId ? { userId: req.query.userId } : {};
+    const filter = { userId: req.query.userId };
     const analytics = await db.collection('patient_analytics')
       .find(filter)
       .sort({ timestamp: -1 })

@@ -1,6 +1,6 @@
 import { WebSocketServer } from 'ws';
 import jwt from 'jsonwebtoken';
-import db from './db.js';
+import { getDB } from './db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -33,22 +33,37 @@ export function setupWebSocket(server) {
     });
 
     // Send initial metrics
-    ws.send(JSON.stringify({ type: 'metrics.update', data: getMetrics() }));
+    getMetrics().then(data => {
+      if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'metrics.update', data }));
+    });
   });
 
   // Broadcast metrics every 10 seconds
-  setInterval(() => {
-    const msg = JSON.stringify({ type: 'metrics.update', data: getMetrics() });
+  setInterval(async () => {
+    const data = await getMetrics();
+    const msg = JSON.stringify({ type: 'metrics.update', data });
     wss.clients.forEach(client => {
       if (client.readyState === 1) client.send(msg);
     });
   }, 10000);
 
-  function getMetrics() {
-    const totalSessions = db.prepare('SELECT COUNT(*) as count FROM sessions').get().count;
-    const todaySessions = db.prepare("SELECT COUNT(*) as count FROM sessions WHERE created_at >= date('now')").get().count;
-    const activeSessions = db.prepare("SELECT COUNT(*) as count FROM sessions WHERE created_at >= datetime('now', '-5 minutes')").get().count;
-    return { totalSessions, todaySessions, activeSessions };
+  async function getMetrics() {
+    try {
+      const db = getDB();
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
+      const [totalSessions, todaySessions, activeSessions] = await Promise.all([
+        db.collection('sessions').countDocuments(),
+        db.collection('sessions').countDocuments({ created_at: { $gte: todayStart.toISOString() } }),
+        db.collection('sessions').countDocuments({ created_at: { $gte: fiveMinAgo } }),
+      ]);
+      return { totalSessions, todaySessions, activeSessions };
+    } catch (err) {
+      console.warn('WS getMetrics error:', err.message);
+      return { totalSessions: 0, todaySessions: 0, activeSessions: 0 };
+    }
   }
 
   // Expose broadcast function for routes to use

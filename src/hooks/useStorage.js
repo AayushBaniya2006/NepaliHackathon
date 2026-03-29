@@ -92,8 +92,16 @@ export function useStorage() {
         });
       }
       if (dbAnalytics && dbAnalytics.length > 0) {
-        setAnalyticsState(dbAnalytics);
-        safeSet(STORAGE_KEYS.ANALYTICS, dbAnalytics);
+        setAnalyticsState(prev => {
+          const map = new Map();
+          for (const a of prev) map.set(a.timestamp, a);
+          for (const a of dbAnalytics) map.set(a.timestamp, a);
+          const merged = [...map.values()].sort((a, b) =>
+            new Date(b.timestamp) - new Date(a.timestamp)
+          );
+          safeSet(STORAGE_KEYS.ANALYTICS, merged);
+          return merged;
+        });
       }
     })();
   }, [userId]);
@@ -120,32 +128,24 @@ export function useStorage() {
   }, [userId]);
 
   const saveSession = useCallback((session) => {
+    const id = session.id != null ? session.id : Date.now();
+    const entry = { ...session, id, userId, timestamp: session.timestamp ?? new Date().toISOString() };
     setSessionsState(prev => {
-      const id = session.id != null ? session.id : Date.now();
-      const entry = { ...session, id, userId, timestamp: session.timestamp ?? new Date().toISOString() };
       const updated = [...prev, entry];
       safeSet(STORAGE_KEYS.SESSIONS, updated);
-      // Sync to MongoDB
-      api('/sessions', {
-        method: 'POST',
-        body: JSON.stringify(entry),
-      });
       return updated;
     });
+    api('/sessions', { method: 'POST', body: JSON.stringify(entry) });
   }, [userId]);
 
   const saveAnalytics = useCallback((entry) => {
+    const record = { ...entry, userId, timestamp: new Date().toISOString() };
     setAnalyticsState(prev => {
-      const record = { ...entry, userId, timestamp: new Date().toISOString() };
       const updated = [...prev, record];
       safeSet(STORAGE_KEYS.ANALYTICS, updated);
-      // Sync to MongoDB
-      api('/analytics', {
-        method: 'POST',
-        body: JSON.stringify(record),
-      });
       return updated;
     });
+    api('/analytics', { method: 'POST', body: JSON.stringify(record) });
   }, [userId]);
 
   const getWeekNumber = useCallback(() => {
