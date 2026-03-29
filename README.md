@@ -8,7 +8,7 @@ Mental health assessment platform that converts gesture-based drawings into clin
 
 Over 450 million people worldwide suffer from mental health conditions but never receive treatment. Traditional verbal assessment fails for non-English speakers, nonverbal individuals, and those facing cultural stigma around discussing mental health.
 
-VoiceCanvas bypasses verbal communication entirely. Patients draw their feelings using webcam-tracked hand gestures. AI analyzes the drawings using GPT-4o vision, fractal dimension algorithms, and real-time facial emotion detection. Results are delivered via natural voice synthesis in the patient's language (English, Nepali). Clinicians receive DSM-5 aligned SOAP notes and insurance-ready documentation.
+VoiceCanvas bypasses verbal communication entirely. Patients draw their feelings using webcam-tracked hand gestures. AI analyzes the drawings using fine tuned open source ml5 model, research backed fractal dimension algorithms, and real-time facial emotion detection with tensorflow. Results are delivered via natural voice synthesis in the patient's language (English, Nepali). Clinicians receive DSM-5 aligned SOAP notes and insurance-ready documentation.
 
 ## Core Features
 
@@ -16,9 +16,9 @@ VoiceCanvas bypasses verbal communication entirely. Patients draw their feelings
 
 - Webcam gesture drawing (MediaPipe hand tracking: index finger draws, pinch erases, fist clears)
 - Real-time facial emotion detection (TensorFlow.js via face-api.js: 7 emotions at 10 FPS)
-- AI analysis with GPT-4o vision + fractal dimension algorithm (box-counting across 7 scales)
+- Deterministic analysis with dedicated ml models + fractal dimension algorithm (box-counting across 7 scales)
 - Multilingual voice feedback (ElevenLabs eleven_v3 with Nepali language_code support)
-- Session replay with emotion overlays burned into video
+- Session replay with emotion overlays burned into video and stored in Azure
 - Care Board for family/friend supportive notes
 - Doctor directory with Women Mode for trauma survivors
 - 5 clinical drawing prompts: Energy Circle, Body Map, Weather Mood, Safe Place, Worry Shape
