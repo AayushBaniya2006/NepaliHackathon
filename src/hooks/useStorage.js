@@ -1,12 +1,16 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 const STORAGE_KEYS = {
   USER_PROFILE: 'mc_user_profile',
   SESSIONS: 'mc_sessions',
   ANALYTICS: 'mc_analytics',
   ONBOARDED: 'mc_onboarded',
+  USER_ID: 'mc_user_id',
 };
 
+const API_BASE = '/api/storage';
+
+// ── localStorage helpers (instant, offline-capable) ──────
 function safeGet(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -24,7 +28,33 @@ function safeSet(key, value) {
   }
 }
 
+// ── API helpers (sync to MongoDB) ────────────────────────
+async function api(path, options = {}) {
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('DB sync failed:', err.message);
+    return null;
+  }
+}
+
+function getUserId() {
+  let id = localStorage.getItem(STORAGE_KEYS.USER_ID);
+  if (!id) {
+    id = crypto.randomUUID?.() || `user_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(STORAGE_KEYS.USER_ID, id);
+  }
+  return id;
+}
+
 export function useStorage() {
+  const userId = useRef(getUserId()).current;
+
   const [profile, setProfileState] = useState(() =>
     safeGet(STORAGE_KEYS.USER_PROFILE, null)
   );
@@ -35,35 +65,88 @@ export function useStorage() {
     safeGet(STORAGE_KEYS.ANALYTICS, [])
   );
 
+  // Pull from MongoDB on mount to pick up data from teammates
+  useEffect(() => {
+    (async () => {
+      const [dbProfile, dbSessions, dbAnalytics] = await Promise.all([
+        api(`/profile/${userId}`),
+        api(`/sessions?userId=${userId}`),
+        api(`/analytics?userId=${userId}`),
+      ]);
+
+      if (dbProfile) {
+        setProfileState(dbProfile);
+        safeSet(STORAGE_KEYS.USER_PROFILE, dbProfile);
+      }
+      if (dbSessions && dbSessions.length > 0) {
+        // Merge: keep unique by id, prefer DB version
+        setSessionsState(prev => {
+          const map = new Map();
+          for (const s of prev) map.set(s.id, s);
+          for (const s of dbSessions) map.set(s.id, s);
+          const merged = [...map.values()].sort((a, b) =>
+            new Date(b.timestamp) - new Date(a.timestamp)
+          );
+          safeSet(STORAGE_KEYS.SESSIONS, merged);
+          return merged;
+        });
+      }
+      if (dbAnalytics && dbAnalytics.length > 0) {
+        setAnalyticsState(dbAnalytics);
+        safeSet(STORAGE_KEYS.ANALYTICS, dbAnalytics);
+      }
+    })();
+  }, [userId]);
+
   const isOnboarded = useCallback(() => {
     return safeGet(STORAGE_KEYS.ONBOARDED, false);
   }, []);
 
   const setOnboarded = useCallback((value) => {
     safeSet(STORAGE_KEYS.ONBOARDED, value);
-  }, []);
+    api('/onboarded', {
+      method: 'PUT',
+      body: JSON.stringify({ userId, onboarded: value }),
+    });
+  }, [userId]);
 
   const setProfile = useCallback((data) => {
     setProfileState(data);
     safeSet(STORAGE_KEYS.USER_PROFILE, data);
-  }, []);
+    api('/profile', {
+      method: 'PUT',
+      body: JSON.stringify({ ...data, userId }),
+    });
+  }, [userId]);
 
   const saveSession = useCallback((session) => {
     setSessionsState(prev => {
       const id = session.id != null ? session.id : Date.now();
-      const updated = [...prev, { ...session, id, timestamp: session.timestamp ?? new Date().toISOString() }];
+      const entry = { ...session, id, userId, timestamp: session.timestamp ?? new Date().toISOString() };
+      const updated = [...prev, entry];
       safeSet(STORAGE_KEYS.SESSIONS, updated);
+      // Sync to MongoDB
+      api('/sessions', {
+        method: 'POST',
+        body: JSON.stringify(entry),
+      });
       return updated;
     });
-  }, []);
+  }, [userId]);
 
   const saveAnalytics = useCallback((entry) => {
     setAnalyticsState(prev => {
-      const updated = [...prev, { ...entry, timestamp: new Date().toISOString() }];
+      const record = { ...entry, userId, timestamp: new Date().toISOString() };
+      const updated = [...prev, record];
       safeSet(STORAGE_KEYS.ANALYTICS, updated);
+      // Sync to MongoDB
+      api('/analytics', {
+        method: 'POST',
+        body: JSON.stringify(record),
+      });
       return updated;
     });
-  }, []);
+  }, [userId]);
 
   const getWeekNumber = useCallback(() => {
     if (!profile?.startDate) return 1;
@@ -104,12 +187,19 @@ export function useStorage() {
     setProfileState(null);
     setSessionsState([]);
     setAnalyticsState([]);
+    api(`/all/${userId}`, { method: 'DELETE' });
+  }, [userId]);
+
+  // Get all team data (for teammates to view)
+  const getTeamData = useCallback(async () => {
+    return await api('/team/all');
   }, []);
 
   return {
     profile,
     sessions,
     analytics,
+    userId,
     isOnboarded,
     setOnboarded,
     setProfile,
@@ -121,5 +211,6 @@ export function useStorage() {
     getStressHistory,
     getAverageStress,
     clearAll,
+    getTeamData,
   };
 }

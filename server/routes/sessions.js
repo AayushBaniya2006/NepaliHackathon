@@ -1,14 +1,18 @@
 import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
-import db from '../db.js';
+import { getDB } from '../db.js';
 
 const router = Router();
 
-router.get('/', (req, res) => {
+// Get all sessions (for authenticated user)
+router.get('/', async (req, res) => {
   try {
-    const sessions = db.prepare(
-      'SELECT id, user_id, prompt_id, stress_score, feedback_short, feedback_emoji, pattern, threshold_met, caregiver_note_json, created_at FROM sessions WHERE user_id = ? ORDER BY created_at DESC'
-    ).all(req.user.id);
+    const db = getDB();
+    const sessions = await db.collection('sessions')
+      .find({ user_id: req.user.id })
+      .sort({ created_at: -1 })
+      .project({ image_data: 0 })
+      .toArray();
     res.json(sessions);
   } catch (err) {
     console.error('Session error:', err);
@@ -16,10 +20,14 @@ router.get('/', (req, res) => {
   }
 });
 
-router.get('/:id', (req, res) => {
+// Get single session
+router.get('/:id', async (req, res) => {
   try {
-    const session = db.prepare('SELECT * FROM sessions WHERE id = ? AND user_id = ?')
-      .get(req.params.id, req.user.id);
+    const db = getDB();
+    const session = await db.collection('sessions').findOne({
+      id: req.params.id,
+      user_id: req.user.id,
+    });
     if (!session) return res.status(404).json({ error: 'Session not found' });
     res.json(session);
   } catch (err) {
@@ -28,19 +36,46 @@ router.get('/:id', (req, res) => {
   }
 });
 
-router.post('/', (req, res) => {
+// Create session
+router.post('/', async (req, res) => {
   try {
+    const db = getDB();
     const { promptId, imageData, stressScore, feedbackShort, feedbackEmoji, personalStatement, pattern, thresholdMet, clinicalNote, insuranceData, caregiverNote } = req.body;
     const id = uuid();
+    const created_at = new Date().toISOString();
 
-    db.prepare(`INSERT INTO sessions (id, user_id, prompt_id, image_data, stress_score, feedback_short, feedback_emoji, personal_statement, pattern, threshold_met, clinical_note_json, insurance_data_json, caregiver_note_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-      .run(id, req.user.id, promptId, imageData, stressScore, feedbackShort, feedbackEmoji, personalStatement, pattern, thresholdMet ? 1 : 0, clinicalNote ? JSON.stringify(clinicalNote) : null, insuranceData ? JSON.stringify(insuranceData) : null, caregiverNote ? JSON.stringify(caregiverNote) : null);
+    const session = {
+      id,
+      user_id: req.user.id,
+      prompt_id: promptId,
+      image_data: imageData,
+      stress_score: stressScore,
+      feedback_short: feedbackShort,
+      feedback_emoji: feedbackEmoji,
+      personal_statement: personalStatement,
+      pattern,
+      threshold_met: thresholdMet ? 1 : 0,
+      clinical_note_json: clinicalNote || null,
+      insurance_data_json: insuranceData || null,
+      caregiver_note_json: caregiverNote || null,
+      created_at,
+    };
+
+    await db.collection('sessions').insertOne(session);
 
     // Also save analytics
-    db.prepare(`INSERT INTO analytics (user_id, session_id, prompt_id, stress_score, indicators_json, pattern, threshold_met) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-      .run(req.user.id, id, promptId, stressScore, req.body.indicators ? JSON.stringify(req.body.indicators) : null, pattern, thresholdMet ? 1 : 0);
+    await db.collection('analytics').insertOne({
+      user_id: req.user.id,
+      session_id: id,
+      prompt_id: promptId,
+      stress_score: stressScore,
+      indicators_json: req.body.indicators || null,
+      pattern,
+      threshold_met: thresholdMet ? 1 : 0,
+      created_at,
+    });
 
-    res.json({ id, created_at: new Date().toISOString() });
+    res.json({ id, created_at });
   } catch (err) {
     console.error('Session error:', err);
     res.status(500).json({ error: 'Session operation failed' });

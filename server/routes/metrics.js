@@ -1,14 +1,25 @@
 import { Router } from 'express';
-import db from '../db.js';
+import { getDB } from '../db.js';
 
 const router = Router();
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const totalSessions = db.prepare('SELECT COUNT(*) as count FROM sessions').get().count;
-    const totalUsers = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
-    const avgStress = db.prepare('SELECT AVG(stress_score) as avg FROM sessions WHERE stress_score IS NOT NULL').get().avg || 0;
-    const todaySessions = db.prepare("SELECT COUNT(*) as count FROM sessions WHERE created_at >= date('now')").get().count;
+    const db = getDB();
+    const totalSessions = await db.collection('sessions').countDocuments();
+    const totalUsers = await db.collection('users').countDocuments();
+
+    const avgResult = await db.collection('sessions').aggregate([
+      { $match: { stress_score: { $ne: null } } },
+      { $group: { _id: null, avg: { $avg: '$stress_score' } } },
+    ]).toArray();
+    const avgStress = avgResult[0]?.avg || 0;
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todaySessions = await db.collection('sessions').countDocuments({
+      created_at: { $gte: todayStart.toISOString() },
+    });
 
     res.json({
       totalSessions,
@@ -24,9 +35,13 @@ router.get('/', (req, res) => {
   }
 });
 
-router.get('/live', (req, res) => {
+router.get('/live', async (req, res) => {
   try {
-    const activeSessions = db.prepare("SELECT COUNT(*) as count FROM sessions WHERE created_at >= datetime('now', '-5 minutes')").get().count;
+    const db = getDB();
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const activeSessions = await db.collection('sessions').countDocuments({
+      created_at: { $gte: fiveMinAgo },
+    });
     res.json({ active_sessions: activeSessions });
   } catch (err) {
     console.error('Metrics error:', err);
