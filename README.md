@@ -5,7 +5,7 @@ Doctor Saas : https://nepal-hackathon-doctor-side.vercel.app/dashboard
 Community Shareable Link" https://voicecanvas-one.vercel.app/care/demo-patient
 
 
-Mental health assessment platform that converts gesture-based drawings into clinical evaluations with multilingual AI voice feedback. Built for 30M+ people who struggle with verbal communication due to language barriers, trauma, autism, anxiety, or cultural stigma.
+Mental health assessment platform that converts gesture-based drawings into clinical evaluations with multilingual AI voice feedback. Built for millions of people who struggle with verbal communication due to language barriers, trauma, autism, anxiety, or cultural stigma.
 
 ## Problem & Solution
 
