@@ -1,4 +1,4 @@
-# VoiceCanvas
+# MindHaven- Client Side
 
 **Live Demo**:Client Side https://voicecanvas-one.vercel.app : 
 Doctor Saas : https://nepal-hackathon-doctor-side.vercel.app/dashboard
