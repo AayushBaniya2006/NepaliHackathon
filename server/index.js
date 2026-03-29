@@ -7,6 +7,7 @@ import { createServer } from 'http';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
+import { connectDB } from './db.js';
 import { authMiddleware } from './middleware/auth.js';
 import authRoutes from './routes/auth.js';
 import sessionRoutes from './routes/sessions.js';
@@ -14,6 +15,7 @@ import analyzeRoutes from './routes/analyze.js';
 import voiceRoutes from './routes/voice.js';
 import metricsRoutes from './routes/metrics.js';
 import resourcesRoutes from './routes/resources.js';
+import storageRoutes from './routes/storage.js';
 import { setupWebSocket } from './ws.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -38,6 +40,7 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/metrics', metricsRoutes);
 app.use('/api/resources', resourcesRoutes);
+app.use('/api/storage', storageRoutes);
 
 // Protected routes
 app.use('/api/sessions', authMiddleware, sessionRoutes);
@@ -53,9 +56,14 @@ app.get('{*path}', (req, res) => {
   res.sendFile(join(__dirname, '..', 'dist', 'index.html'));
 });
 
-// WebSocket
-const ws = setupWebSocket(server);
+connectDB().then(() => {
+  // WebSocket setup after DB is ready so getMetrics() can use getDB()
+  setupWebSocket(server);
 
-server.listen(PORT, () => {
-  console.log(`MindCanvas server running on port ${PORT}`);
+  server.listen(PORT, () => {
+    console.log(`MindCanvas server running on port ${PORT}`);
+  });
+}).catch(err => {
+  console.error('Failed to connect to MongoDB:', err);
+  process.exit(1);
 });
