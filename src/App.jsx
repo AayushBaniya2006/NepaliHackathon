@@ -4,7 +4,21 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import GlobalNav from './components/GlobalNav';
 import Landing from './pages/Landing';
+import { unlockAudioPlayback } from './utils/audioUnlock';
 import './index.css';
+
+/** First tap/click anywhere primes autoplay for TTS on the next screen (browser policy). */
+function AudioUnlockOnInteraction() {
+  useEffect(() => {
+    const once = () => {
+      unlockAudioPlayback();
+      document.removeEventListener('pointerdown', once, true);
+    };
+    document.addEventListener('pointerdown', once, true);
+    return () => document.removeEventListener('pointerdown', once, true);
+  }, []);
+  return null;
+}
 
 /* Lazy-load all pages except Landing (first paint) */
 const Onboarding = lazy(() => import('./pages/Onboarding'));
@@ -90,6 +104,7 @@ function AnimatedRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
+      <AudioUnlockOnInteraction />
       <AnimatedRoutes />
     </BrowserRouter>
   );

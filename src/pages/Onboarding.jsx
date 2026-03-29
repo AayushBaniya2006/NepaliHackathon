@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStorage } from '../hooks/useStorage';
 import './Onboarding.css';
@@ -29,6 +30,7 @@ const CONSENT_ITEMS = [
 export default function Onboarding() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { i18n } = useTranslation();
   const role = location.state?.role || 'patient';
   const { setProfile, setOnboarded } = useStorage();
 
@@ -142,6 +144,7 @@ export default function Onboarding() {
         isNonverbal: consent.nonverbal || false,
         consentData: consent.data || false,
         startDate: new Date().toISOString(),
+        language: i18n.resolvedLanguage?.split('-')[0] || 'en',
       });
       setOnboarded(true);
       navigate('/dashboard');

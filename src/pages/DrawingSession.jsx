@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import DrawingCanvas from '../components/DrawingCanvas';
 import GestureIndicator from '../components/GestureIndicator';
@@ -11,6 +12,7 @@ import { useLlm } from '../hooks/useLlm';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { useStorage } from '../hooks/useStorage';
 import { getPromptById, DRAWING_PROMPTS } from '../utils/drawingPrompts';
+import { unlockAudioPlayback } from '../utils/audioUnlock';
 import { STAMPS, getStampByGesture } from '../utils/stamps';
 import { isAzureUploadConfigured, uploadSessionReplayToAzure } from '../utils/azureBlob';
 import GestureConfidenceBar from '../components/GestureConfidenceBar';
@@ -102,6 +104,7 @@ function abortWebcamRecording(recorderRef) {
 }
 
 export default function DrawingSession({ promptOverride }) {
+  const { i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const promptId = promptOverride?.id || location.state?.promptId || 'energy';
@@ -205,6 +208,7 @@ export default function DrawingSession({ promptOverride }) {
 
   const handleAnalyze = async () => {
     if (isProcessing) return;
+    unlockAudioPlayback();
     setIsProcessing(true);
     setAnalyzeProgress(0);
     setAnalyzeStage('Stopping camera recording...');
@@ -232,7 +236,16 @@ export default function DrawingSession({ promptOverride }) {
 
     // Stage 2: Analysis (30-70%)
     setAnalyzeProgress(45);
-    const result = await analyzeDrawing(dataUrl, promptId, prompt.title, emotionTimeline);
+    const uiLang = (i18n.resolvedLanguage || 'en').split('-')[0];
+    // Nepali if: नेपाली UI, or profile says ne (onboarding), or explicit env default for hackathon
+    const envDefault = (import.meta.env.VITE_DEFAULT_PATIENT_LANGUAGE || '').trim().toLowerCase();
+    const patientLanguage =
+      uiLang === 'ne' || profile?.language === 'ne' || envDefault === 'ne'
+        ? 'ne'
+        : uiLang !== 'en'
+          ? uiLang
+          : (profile?.language || 'en');
+    const result = await analyzeDrawing(dataUrl, promptId, prompt.title, emotionTimeline, patientLanguage);
     setAnalyzeProgress(70);
     setAnalyzeStage('Generating clinical note...');
 
@@ -251,6 +264,15 @@ export default function DrawingSession({ promptOverride }) {
         imageUrl: dataUrl,
         stressScore: result.stress_score,
         feedbackShort: result.feedback_short,
+        feedbackEmoji: result.feedback_emoji,
+        personalStatement: result.personal_statement,
+        personalStatementEn: result.personal_statement_en,
+        pattern: result.pattern,
+        thresholdMet: result.threshold_met,
+        clinicalNote: result.clinical_note,
+        insuranceData: result.insurance_data,
+        diagnosis: result.diagnosis,
+        facialAnalysis: result.facial_analysis,
         caregiverNote,
         timestamp: sessionDate,
         emotionTimeline,
@@ -290,7 +312,15 @@ export default function DrawingSession({ promptOverride }) {
         }
       }
 
-      navigate('/session-results', { state: { result, canvasImage: dataUrl, promptId, liveMode: sessionMode === 'live' } });
+      navigate('/session-results', {
+        state: {
+          result,
+          canvasImage: dataUrl,
+          promptId,
+          liveMode: sessionMode === 'live',
+          patientLanguage,
+        },
+      });
     }
     setIsProcessing(false);
   };

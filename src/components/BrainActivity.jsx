@@ -144,10 +144,23 @@ export default function BrainActivity({ gesture = 'none', mode = 'draw', isDrawi
   }, []);
 
   const dominantRegion = useMemo(() => {
-    let max = 0, id = '';
-    Object.entries(activities).forEach(([k, v]) => { if (v > max) { max = v; id = k; } });
+    let max = 0;
+    let id = '';
+    Object.entries(activities).forEach(([k, v]) => {
+      const n = Number.isFinite(v) ? v : 0;
+      if (n > max) {
+        max = n;
+        id = k;
+      }
+    });
     return BRAIN_REGIONS.find(r => r.id === id);
   }, [activities]);
+
+  const lvlAt = (regionId) => {
+    const v = activities[regionId];
+    const base = BRAIN_REGIONS.find(b => b.id === regionId)?.baseActivity ?? 0.3;
+    return Number.isFinite(v) ? v : base;
+  };
 
   return (
     <div className="brain-panel">
@@ -162,12 +175,15 @@ export default function BrainActivity({ gesture = 'none', mode = 'draw', isDrawi
       <div className="brain-viz">
         <svg viewBox="0 0 100 80" className="brain-svg">
           <defs>
-            {BRAIN_REGIONS.map(r => (
+            {BRAIN_REGIONS.map((r) => {
+              const lvl = lvlAt(r.id);
+              return (
               <radialGradient key={r.id} id={`glow-${r.id}`}>
-                <stop offset="0%" stopColor={getActivityColor(activities[r.id])} stopOpacity={activities[r.id]} />
-                <stop offset="100%" stopColor={getActivityColor(activities[r.id])} stopOpacity="0" />
+                <stop offset="0%" stopColor={getActivityColor(lvl)} stopOpacity={lvl} />
+                <stop offset="100%" stopColor={getActivityColor(lvl)} stopOpacity="0" />
               </radialGradient>
-            ))}
+              );
+            })}
           </defs>
 
           {/* Brain outline */}
@@ -186,19 +202,23 @@ export default function BrainActivity({ gesture = 'none', mode = 'draw', isDrawi
           />
 
           {/* Activity regions */}
-          {BRAIN_REGIONS.map(r => (
+            {BRAIN_REGIONS.map((r) => {
+              const lvl = lvlAt(r.id);
+              const glowR = Math.max(4, 10 + lvl * 8);
+              const pulseR = Math.max(4, 6 + lvl * 3);
+              return (
             <g key={r.id}>
               <motion.circle
                 cx={r.x} cy={r.y}
-                r={10 + activities[r.id] * 8}
+                r={glowR}
                 fill={`url(#glow-${r.id})`}
-                animate={{ r: 10 + activities[r.id] * 8 }}
+                animate={{ r: glowR }}
                 transition={{ duration: 0.8 }}
               />
               <circle
                 cx={r.x} cy={r.y} r={4}
-                fill={getActivityColor(activities[r.id])}
-                opacity={0.5 + activities[r.id] * 0.5}
+                fill={getActivityColor(lvl)}
+                opacity={0.5 + lvl * 0.5}
                 style={{ cursor: 'pointer' }}
                 onMouseEnter={() => setHoveredRegion(r.id)}
                 onMouseLeave={() => setHoveredRegion(null)}
@@ -206,18 +226,20 @@ export default function BrainActivity({ gesture = 'none', mode = 'draw', isDrawi
               <motion.circle
                 cx={r.x} cy={r.y} r={4}
                 fill="transparent"
-                stroke={getActivityColor(activities[r.id])}
+                stroke={getActivityColor(lvl)}
                 strokeWidth={0.8}
-                animate={{ r: [4, 6 + activities[r.id] * 3, 4], opacity: [0.6, 0, 0.6] }}
+                animate={{ r: [4, pulseR, 4], opacity: [0.6, 0, 0.6] }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
               />
             </g>
-          ))}
+            );
+          })}
         </svg>
 
         <AnimatePresence>
           {hoveredRegion && (() => {
             const r = BRAIN_REGIONS.find(reg => reg.id === hoveredRegion);
+            if (!r) return null;
             return (
               <motion.div
                 className="brain-tooltip"
@@ -228,9 +250,9 @@ export default function BrainActivity({ gesture = 'none', mode = 'draw', isDrawi
                 <strong>{r.name}</strong>
                 <span className="bt-role">{r.role}</span>
                 <div className="bt-bar-wrap">
-                  <div className="bt-bar" style={{ width: `${activities[r.id] * 100}%`, background: getActivityColor(activities[r.id]) }} />
+                  <div className="bt-bar" style={{ width: `${lvlAt(r.id) * 100}%`, background: getActivityColor(lvlAt(r.id)) }} />
                 </div>
-                <span className="bt-level">{getActivityLabel(activities[r.id])}</span>
+                <span className="bt-level">{getActivityLabel(lvlAt(r.id))}</span>
               </motion.div>
             );
           })()}
@@ -246,7 +268,7 @@ export default function BrainActivity({ gesture = 'none', mode = 'draw', isDrawi
             onMouseEnter={() => setHoveredRegion(r.id)}
             onMouseLeave={() => setHoveredRegion(null)}
           >
-            <div className="br-dot" style={{ background: getActivityColor(activities[r.id]) }} />
+            <div className="br-dot" style={{ background: getActivityColor(lvlAt(r.id)) }} />
             <div className="br-info">
               <span className="br-name">{r.name}</span>
               <span className="br-role">{r.role}</span>
@@ -254,12 +276,12 @@ export default function BrainActivity({ gesture = 'none', mode = 'draw', isDrawi
             <div className="br-bar-wrap">
               <motion.div
                 className="br-bar"
-                style={{ background: getActivityColor(activities[r.id]) }}
-                animate={{ width: `${activities[r.id] * 100}%` }}
+                style={{ background: getActivityColor(lvlAt(r.id)) }}
+                animate={{ width: `${lvlAt(r.id) * 100}%` }}
                 transition={{ duration: 0.8 }}
               />
             </div>
-            <span className="br-pct">{Math.round(activities[r.id] * 100)}%</span>
+            <span className="br-pct">{Math.round(lvlAt(r.id) * 100)}%</span>
           </div>
         ))}
       </div>

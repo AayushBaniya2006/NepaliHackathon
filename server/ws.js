@@ -1,8 +1,7 @@
 import { WebSocketServer } from 'ws';
 import jwt from 'jsonwebtoken';
 import { getDB } from './db.js';
-
-const JWT_SECRET = process.env.JWT_SECRET;
+import { getJwtSecret } from './middleware/auth.js';
 
 export function setupWebSocket(server) {
   const wss = new WebSocketServer({ server, path: '/ws' });
@@ -15,7 +14,7 @@ export function setupWebSocket(server) {
 
     if (token) {
       try {
-        const payload = jwt.verify(token, JWT_SECRET);
+        const payload = jwt.verify(token, getJwtSecret());
         userId = payload.id;
       } catch { /* anonymous connection */ }
     }

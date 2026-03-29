@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getPromptById } from '../utils/drawingPrompts';
 import { exportClinicalNotePDF } from '../utils/pdfExport';
@@ -12,17 +13,45 @@ import './SessionResults.css';
 
 const VOICECANVAS_PATIENT_ID = import.meta.env.VITE_VOICECANVAS_PATIENT_ID?.trim() || 'pt-001';
 
+/** Nepali is officially on eleven_v3 only; multilingual_v2 / flash list ~29–32 langs without Nepali (per ElevenLabs docs). */
+const TTS_PATIENT_MODEL =
+  import.meta.env.VITE_TTS_PATIENT_MODEL_ID?.trim() || 'eleven_v3';
+
+const BROWSER_LANG_MAP = {
+  ne: 'ne-NP',
+  es: 'es-ES',
+  zh: 'zh-CN',
+  hi: 'hi-IN',
+  ar: 'ar-SA',
+  fr: 'fr-FR',
+  pt: 'pt-BR',
+  tl: 'fil-PH',
+  vi: 'vi-VN',
+  ko: 'ko-KR',
+  so: 'so-SO',
+  en: 'en-US',
+};
+
+/** ElevenLabs needs `language_code: ne` for Nepali; if the UI/profile is English but the LLM returned Devanagari, still send `ne`. */
+function ttsLanguageCodeForUtterance({ liveMode, patientCode, utteranceText, englishTrack }) {
+  if (liveMode || englishTrack) return undefined;
+  if (patientCode && patientCode !== 'en') return patientCode.slice(0, 2);
+  if (utteranceText && /\p{Script=Devanagari}/u.test(utteranceText)) return 'ne';
+  return undefined;
+}
+
 export default function SessionResults() {
+  const { i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const { result, canvasImage, promptId, liveMode } = location.state || {};
+  const { result, canvasImage, promptId, liveMode, patientLanguage: sessionPatientLang } = location.state || {};
   const prompt = getPromptById(promptId);
   const { profile, sessions } = useStorage();
-  const { speak: elevenSpeak } = useElevenLabs();
+  const { speak: elevenSpeak, stop: elevenStop, isPlaying, loading: voiceLoading } = useElevenLabs();
 
   const [shared, setShared] = useState(false);
   const [voiceLang, setVoiceLang] = useState('patient'); // 'patient' | 'en'
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const voiceBusy = isPlaying || voiceLoading;
   const [showDoctorSelector, setShowDoctorSelector] = useState(false);
   const [showWearableSheet, setShowWearableSheet] = useState(false);
   const [connectedDoctor, setConnectedDoctor] = useState(null); // doctor object after connecting
@@ -38,16 +67,31 @@ export default function SessionResults() {
     if (latest?.sharedWithDoctor) setShared(true);
   }, [result, sessions]);
 
-  // Auto-play personal statement via ElevenLabs on load
+  const effectivePatientCode =
+    sessionPatientLang || profile?.language || i18n.resolvedLanguage?.split('-')[0] || 'en';
+
+  // Auto-play: English for live (doctor), patient track otherwise (Nepali text + multilingual + language_code)
   useEffect(() => {
-    if (!result?.personal_statement) return;
+    if (!result?.personal_statement && !result?.personal_statement_en) return;
     const text = liveMode
       ? (result.personal_statement_en || result.personal_statement)
-      : result.personal_statement;
-    const timer = setTimeout(() => elevenSpeak(text), 1200);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      : (result.personal_statement || result.personal_statement_en);
+    const modelId = liveMode ? undefined : TTS_PATIENT_MODEL;
+    const browserLang = liveMode ? 'en-US' : (BROWSER_LANG_MAP[effectivePatientCode] || 'ne-NP');
+    const languageCode = ttsLanguageCodeForUtterance({
+      liveMode,
+      patientCode: effectivePatientCode,
+      utteranceText: text,
+      englishTrack: false,
+    });
+    const timer = setTimeout(() => {
+      elevenSpeak(text, { modelId, browserLang, languageCode });
+    }, 180);
+    return () => {
+      clearTimeout(timer);
+      elevenStop();
+    };
+  }, [result, liveMode, effectivePatientCode, elevenSpeak, elevenStop]);
 
   const triggerAzureShare = useCallback(() => {
     try {
@@ -86,39 +130,36 @@ export default function SessionResults() {
     setShowDoctorSelector(false);
   }, [triggerAzureShare]);
 
-  const handleSpeak = useCallback((lang) => {
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
+  const handleSpeak = useCallback(
+    async (lang) => {
+      elevenStop();
+      window.speechSynthesis?.cancel();
 
-    const text = lang === 'en'
-      ? (result?.personal_statement_en || result?.personal_statement || '')
-      : (result?.personal_statement || '');
+      const patientText = (result?.personal_statement || '').trim();
+      const englishText = (result?.personal_statement_en || result?.personal_statement || '').trim();
+      const text = lang === 'en' ? englishText : patientText;
+      if (!text) return;
 
-    if (!text) return;
+      setVoiceLang(lang);
+      const modelId = lang === 'en' ? undefined : TTS_PATIENT_MODEL;
+      const browserLang =
+        lang === 'en' ? 'en-US' : (BROWSER_LANG_MAP[effectivePatientCode] || 'ne-NP');
+      const languageCode = ttsLanguageCodeForUtterance({
+        liveMode: false,
+        patientCode: effectivePatientCode,
+        utteranceText: text,
+        englishTrack: lang === 'en',
+      });
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9;
-    utterance.pitch = 1.0;
-
-    if (lang === 'en') {
-      utterance.lang = 'en-US';
-    } else if (profile?.language) {
-      const langMap = { ne: 'ne-NP', es: 'es-ES', zh: 'zh-CN', hi: 'hi-IN', ar: 'ar-SA', fr: 'fr-FR', pt: 'pt-BR', tl: 'fil-PH', vi: 'vi-VN', ko: 'ko-KR', so: 'so-SO' };
-      utterance.lang = langMap[profile.language] || 'en-US';
-    }
-
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-
-    setVoiceLang(lang);
-    window.speechSynthesis.speak(utterance);
-  }, [result, profile]);
+      await elevenSpeak(text, { modelId, browserLang, languageCode });
+    },
+    [result, effectivePatientCode, elevenSpeak, elevenStop]
+  );
 
   const handleStopSpeaking = useCallback(() => {
-    window.speechSynthesis.cancel();
-    setIsSpeaking(false);
-  }, []);
+    elevenStop();
+    window.speechSynthesis?.cancel();
+  }, [elevenStop]);
 
   if (!result) return null;
 
@@ -301,7 +342,7 @@ export default function SessionResults() {
           </blockquote>
 
           <div className="sr-voice-controls">
-            {isSpeaking ? (
+            {voiceBusy ? (
               <button className="btn btn-sm btn-secondary" onClick={handleStopSpeaking}>
                 Stop
               </button>
@@ -311,16 +352,24 @@ export default function SessionResults() {
               </button>
             )}
             <button
+              type="button"
               className={`btn btn-sm ${voiceLang === 'patient' ? 'btn-outline sr-lang-active' : 'btn-ghost'}`}
-              onClick={() => { setVoiceLang('patient'); if (isSpeaking) handleSpeak('patient'); }}
+              onClick={() => {
+                setVoiceLang('patient');
+                void handleSpeak('patient');
+              }}
             >
-              My Language
+              My language
             </button>
             <button
+              type="button"
               className={`btn btn-sm ${voiceLang === 'en' ? 'btn-outline sr-lang-active' : 'btn-ghost'}`}
-              onClick={() => { setVoiceLang('en'); if (isSpeaking) handleSpeak('en'); }}
+              onClick={() => {
+                setVoiceLang('en');
+                void handleSpeak('en');
+              }}
             >
-              Hear in English
+              English (for doctor)
             </button>
           </div>
         </motion.div>
@@ -382,7 +431,7 @@ export default function SessionResults() {
                 : 'Send to a Doctor'}
           </button>
 
-          <button className="btn btn-outline" onClick={() => handleSpeak(voiceLang)}>
+          <button type="button" className="btn btn-outline" onClick={() => void handleSpeak(voiceLang)}>
             Play summary again
           </button>
           <button className="btn btn-secondary" onClick={handleDownloadPDF}>

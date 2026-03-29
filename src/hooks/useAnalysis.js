@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { assessDrawingComplexity } from '../utils/fractalAnalysis';
 import { recognizeSketch } from '../utils/doodleRecognition';
 
-function getMockAnalysis(promptId) {
+function getMockAnalysis(promptId, language = 'en') {
   const mocksByPrompt = {
     energy: {
       stress_score: 7.2,
@@ -61,10 +61,24 @@ function getMockAnalysis(promptId) {
     },
   };
 
-  const base = mocksByPrompt[promptId] || mocksByPrompt.energy;
+  const template = mocksByPrompt[promptId] || mocksByPrompt.energy;
+  const base = { ...template };
+  if (template.clinical_note) base.clinical_note = { ...template.clinical_note };
+  if (template.insurance_data) base.insurance_data = { ...template.insurance_data };
+  if (template.indicators) base.indicators = { ...template.indicators };
+
+  if (language === 'ne') {
+    base.personal_statement =
+      'म आफ्नो भावनाहरू शब्दमा भन्न गाह्रो महसुस गर्छु। यो चित्रले म भन्न नसकेका कुराहरू देखाउँछ। त्यहाँ भार छ, तर सानो आशाको पनि झलक छ।';
+    base.personal_statement_en =
+      'I find it hard to put my feelings into words. This drawing shows what I could not say. There is weight I carry, but also a glimpse of hope.';
+  }
 
   if (!base.personal_statement) {
     base.personal_statement = 'I have feelings inside me that are hard to put into words. This drawing helps show what I cannot say — there is weight I carry, but also a small light I am holding onto.';
+  }
+  if (!base.personal_statement_en) {
+    base.personal_statement_en = base.personal_statement;
   }
   if (!base.clinical_note) {
     base.clinical_note = {
@@ -105,13 +119,13 @@ export function useAnalysis() {
     }
   };
 
-  const analyzeDrawing = useCallback(async (canvasDataUrl, promptId, promptLabel, emotionTimeline = []) => {
+  const analyzeDrawing = useCallback(async (canvasDataUrl, promptId, promptLabel, emotionTimeline = [], language = 'en') => {
     setLoading(true);
     setError(null);
 
     // Convert data URL to canvas for analysis
     const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     const img = new Image();
 
     // Load image from data URL
@@ -155,6 +169,7 @@ export function useAnalysis() {
           promptId,
           promptLabel,
           emotionTimeline,
+          language,
           fractalAnalysis,
           sketchAnalysis,
         }),
@@ -175,7 +190,7 @@ export function useAnalysis() {
 
     // Fallback: enhanced mock data with real analyses
     await new Promise(r => setTimeout(r, 2500));
-    const mock = getMockAnalysis(promptId);
+    const mock = getMockAnalysis(promptId, language);
 
     // Add real fractal analysis
     if (fractalAnalysis) {

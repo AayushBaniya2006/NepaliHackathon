@@ -40,7 +40,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const db = getDB();
-    const { promptId, imageData, stressScore, feedbackShort, feedbackEmoji, personalStatement, pattern, thresholdMet, clinicalNote, insuranceData, caregiverNote } = req.body;
+    const { promptId, imageData, stressScore, feedbackShort, feedbackEmoji, personalStatement, personalStatementEn, pattern, thresholdMet, clinicalNote, insuranceData, diagnosis, facialAnalysis, caregiverNote, emotionTimeline } = req.body;
     const id = uuid();
     const created_at = new Date().toISOString();
 
@@ -53,11 +53,15 @@ router.post('/', async (req, res) => {
       feedback_short: feedbackShort,
       feedback_emoji: feedbackEmoji,
       personal_statement: personalStatement,
+      personal_statement_en: personalStatementEn,
       pattern,
       threshold_met: thresholdMet ? 1 : 0,
       clinical_note_json: clinicalNote || null,
       insurance_data_json: insuranceData || null,
+      diagnosis: diagnosis || null,
+      facial_analysis_json: facialAnalysis || null,
       caregiver_note_json: caregiverNote || null,
+      emotion_timeline_json: emotionTimeline || null,
       created_at,
     };
 

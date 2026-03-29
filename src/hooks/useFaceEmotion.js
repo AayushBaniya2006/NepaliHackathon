@@ -94,7 +94,12 @@ export function useFaceEmotion(videoRef, onEmotionChange) {
       return;
     }
 
-    const result = await detectEmotion(video);
+    let result = null;
+    try {
+      result = await detectEmotion(video);
+    } catch (e) {
+      console.warn('Face frame error:', e?.message || e);
+    }
 
     if (result && result.emotion !== 'no_face') {
       // Only trigger callback if emotion changed or confidence is high
@@ -135,7 +140,7 @@ export function useFaceEmotion(videoRef, onEmotionChange) {
   }, []);
 
   useEffect(() => {
-    loadModels();
+    loadModels().catch((e) => console.warn('face-api loadModels:', e));
     return () => {
       stopTracking();
     };

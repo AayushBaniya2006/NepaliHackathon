@@ -18,7 +18,7 @@
  * @returns {Object} Fractal analysis results
  */
 export function calculateFractalDimension(canvasElement) {
-  const ctx = canvasElement.getContext('2d');
+  const ctx = canvasElement.getContext('2d', { willReadFrequently: true });
   const width = canvasElement.width;
   const height = canvasElement.height;
   const imageData = ctx.getImageData(0, 0, width, height);
@@ -197,7 +197,7 @@ function interpretFractalDimension(dimension, r2) {
  * Calculate drawing entropy (alternative complexity measure)
  */
 export function calculateEntropy(canvasElement) {
-  const ctx = canvasElement.getContext('2d');
+  const ctx = canvasElement.getContext('2d', { willReadFrequently: true });
   const imageData = ctx.getImageData(0, 0, canvasElement.width, canvasElement.height);
 
   // Build grayscale histogram

@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -73,6 +72,9 @@ const ANALYSIS_SYSTEM_PROMPT = `You are a clinical art therapy analysis AI. Anal
 - Symbols: storms, darkness, somatic markers, hearts, houses
 - Composition: chaos vs order
 
+NARRATIVE (most important for the patient):
+- personal_statement and personal_statement_en must be a short, vivid first-person story (2-4 sentences), not a list of symptoms. Write as if the patient is speaking: concrete sensory detail from the drawing (colors, shapes, space), a clear emotional arc (e.g. weight → small relief, or chaos → one steady thing), and warm authenticity. Avoid clichés, clinical labels, and generic phrases like "I feel stressed" without imagery tied to what you see in the image.
+
 Output ONLY valid JSON with this exact structure:
 {
   "stress_score": <number 1-10>,
@@ -81,18 +83,19 @@ Output ONLY valid JSON with this exact structure:
   "threshold_met": <boolean, true if score >= 7>,
   "feedback_emoji": "<single emoji>",
   "feedback_short": "<warm 10-word feedback>",
-  "personal_statement": "<2-3 sentence warm personal interpretation>",
+  "personal_statement": "<2-4 sentence first-person narrative in the patient's language — story-like, grounded in the drawing>",
+  "personal_statement_en": "<same narrative meaning in fluent English for the clinician>",
   "clinical_note": { "S": "<subjective>", "O": "<objective>", "A": "<assessment>", "P": "<plan>" },
   "diagnosis": "<ICD-10 code>",
   "insurance_data": { "chief_complaint": "<string>", "symptom_duration": "<string>", "functional_impairment": "<string>", "diagnosis_category": "<string>", "requested_service": "<string>" }
 }`;
 
-router.post('/drawing', authMiddleware, async (req, res) => {
+router.post('/drawing', async (req, res) => {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'OPENAI_API_KEY not configured' });
 
   try {
-    const { imageBase64, promptId, promptLabel } = req.body;
+    const { imageBase64, promptId, promptLabel, language, emotionTimeline } = req.body;
     if (!imageBase64 || !validateBase64(imageBase64)) {
       return res.status(400).json({ error: 'Invalid or oversized image data' });
     }
@@ -102,7 +105,43 @@ router.post('/drawing', authMiddleware, async (req, res) => {
     const imageUrl = toDataImageUrl(imageBase64);
     if (!imageUrl) return res.status(400).json({ error: 'Invalid image data' });
 
-    const userText = `Analyze this nonverbal patient's "${promptLabel || promptId}" drawing for clinical stress indicators. Return ONLY the JSON.`;
+    // Language mapping for GPT-4o
+    const langMap = {
+      ne: 'Nepali',
+      es: 'Spanish',
+      zh: 'Mandarin Chinese',
+      hi: 'Hindi',
+      ar: 'Arabic',
+      fr: 'French',
+      pt: 'Portuguese',
+      tl: 'Tagalog',
+      vi: 'Vietnamese',
+      ko: 'Korean',
+      so: 'Somali',
+      en: 'English',
+    };
+    const patientLanguage = langMap[language] || 'English';
+
+    // Build user text with emotion context if available
+    let userText = `Analyze this nonverbal patient's "${promptLabel || promptId}" drawing for clinical stress indicators.`;
+
+    if (emotionTimeline && emotionTimeline.length > 0) {
+      const emotionSummary = emotionTimeline.map(e => e.emotion).join(', ');
+      userText += ` Facial emotions detected during session: ${emotionSummary}.`;
+    }
+
+    userText += `\n\nIMPORTANT: Generate personal_statement in ${patientLanguage}, and personal_statement_en in English. Make both read as one coherent narrative (same emotional beats); personal_statement_en must faithfully mirror personal_statement. Return ONLY the JSON.`;
+
+    if (language === 'ne') {
+      userText += `
+
+CRITICAL NEPALI (ne) RULES:
+- personal_statement MUST be natural, literary Nepali written ONLY in Devanagari script (Unicode). Do NOT write Nepali in Latin letters.
+- Aim for idiomatic, emotionally resonant phrasing — like spoken testimony, not a form — while staying tied to what appears in the drawing.
+- personal_statement_en MUST be a fluent English translation of the same meaning (for the clinician).
+- pattern, feedback_short, clinical_note, and insurance fields may remain in English for clinical records.`;
+    }
+
     const userContent = [
       { type: 'image_url', image_url: { url: imageUrl } },
       { type: 'text', text: userText },
@@ -126,7 +165,7 @@ router.post('/drawing', authMiddleware, async (req, res) => {
 
 const SIGN_USER_INSTRUCTION = 'Identify any ASL sign in this frame. Return JSON: { "recognized": boolean, "sign": "word", "confidence": "high|medium|low", "description": "brief" }';
 
-router.post('/sign', authMiddleware, async (req, res) => {
+router.post('/sign', async (req, res) => {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'OPENAI_API_KEY not configured' });
 
@@ -163,7 +202,7 @@ router.post('/sign', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/sign-message', authMiddleware, async (req, res) => {
+router.post('/sign-message', async (req, res) => {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'OPENAI_API_KEY not configured' });
 
