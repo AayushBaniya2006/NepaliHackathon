@@ -114,11 +114,12 @@ export async function uploadSessionReplayToAzure({
   let videoPath = null;
   if (hasVideo) {
     try {
-      const vp = `${basePath}/replay.webm`;
+      const isMp4 = (videoBlob.type || '').toLowerCase().includes('mp4');
+      const vp = `${basePath}/replay.${isMp4 ? 'mp4' : 'webm'}`;
       await putBlob(
         buildBlobUrl(account, container, vp, sas),
         videoBlob,
-        videoBlob.type || 'video/webm'
+        videoBlob.type || (isMp4 ? 'video/mp4' : 'video/webm')
       );
       videoPath = vp;
     } catch (e) {

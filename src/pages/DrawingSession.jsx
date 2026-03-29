@@ -11,6 +11,7 @@ import { useAnalysis } from '../hooks/useAnalysis';
 import { useStorage } from '../hooks/useStorage';
 import { getPromptById, DRAWING_PROMPTS } from '../utils/drawingPrompts';
 import { STAMPS, getStampByGesture } from '../utils/stamps';
+import { isAzureUploadConfigured, uploadSessionReplayToAzure } from '../utils/azureBlob';
 import GestureConfidenceBar from '../components/GestureConfidenceBar';
 import LiveSparkline from '../components/LiveSparkline';
 import CanvasHeatmap from '../components/CanvasHeatmap';
@@ -31,6 +32,73 @@ const BRUSH_COLORS = [
 ];
 
 const TIMER_SECONDS = 120;
+
+const VOICECANVAS_PATIENT_ID = import.meta.env.VITE_VOICECANVAS_PATIENT_ID?.trim() || 'pt-001';
+
+function pickRecorderMimeType() {
+  const candidates = [
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm',
+    'video/mp4',
+  ];
+  for (const t of candidates) {
+    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t)) return t;
+  }
+  return '';
+}
+
+function startWebcamRecording(stream, recorderRef, chunksRef) {
+  if (!stream || typeof MediaRecorder === 'undefined') return;
+  chunksRef.current = [];
+  const mimeType = pickRecorderMimeType();
+  try {
+    const mr = mimeType
+      ? new MediaRecorder(stream, { mimeType })
+      : new MediaRecorder(stream);
+    mr.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+    };
+    mr.start(1000);
+    recorderRef.current = mr;
+  } catch (e) {
+    console.warn('Webcam recording not started:', e);
+    recorderRef.current = null;
+  }
+}
+
+function stopWebcamRecording(recorderRef, chunksRef) {
+  const mr = recorderRef.current;
+  recorderRef.current = null;
+  if (!mr) return Promise.resolve(null);
+  if (mr.state === 'inactive') {
+    const blob = new Blob(chunksRef.current, { type: mr.mimeType || 'video/webm' });
+    chunksRef.current = [];
+    return Promise.resolve(blob.size > 0 ? blob : null);
+  }
+  return new Promise((resolve) => {
+    mr.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: mr.mimeType || 'video/webm' });
+      chunksRef.current = [];
+      resolve(blob.size > 0 ? blob : null);
+    };
+    try {
+      mr.stop();
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+function abortWebcamRecording(recorderRef) {
+  const mr = recorderRef.current;
+  recorderRef.current = null;
+  if (mr && mr.state === 'recording') {
+    try {
+      mr.stop();
+    } catch { /* ignore */ }
+  }
+}
 
 export default function DrawingSession({ promptOverride }) {
   const navigate = useNavigate();
@@ -75,10 +143,13 @@ export default function DrawingSession({ promptOverride }) {
 
   const stampCooldownRef = useRef(false);
   const [stampFeedbackName, setStampFeedbackName] = useState('');
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
+  const webcamRecordingStartedRef = useRef(false);
 
   const { recognizeSign, interpretSignMessage, loading: claudeLoading } = useClaude();
   const { analyzeDrawing, loading: analysisLoading } = useAnalysis();
-  const { saveSession, saveAnalytics } = useStorage();
+  const { saveSession, saveAnalytics, profile } = useStorage();
 
   useEffect(() => {
     if (!timerActive || timeLeft <= 0) return;
@@ -133,8 +204,12 @@ export default function DrawingSession({ promptOverride }) {
     if (isProcessing) return;
     setIsProcessing(true);
     setAnalyzeProgress(0);
-    setAnalyzeStage('Capturing drawing...');
+    setAnalyzeStage('Stopping camera recording...');
 
+    const sessionId = Date.now();
+    const videoBlob = await stopWebcamRecording(mediaRecorderRef, recordedChunksRef);
+
+    setAnalyzeStage('Capturing drawing...');
     const dataUrl = canvasRef.current?.toDataURL();
     if (!dataUrl) { setIsProcessing(false); return; }
 
@@ -166,14 +241,51 @@ export default function DrawingSession({ promptOverride }) {
       setAnalyzeProgress(100);
       await new Promise(r => setTimeout(r, 200));
 
+      const sessionDate = new Date().toISOString();
       saveSession({
-        promptId, imageUrl: dataUrl, stressScore: result.stress_score,
-        feedbackShort: result.feedback_short, caregiverNote,
+        id: sessionId,
+        promptId,
+        imageUrl: dataUrl,
+        stressScore: result.stress_score,
+        feedbackShort: result.feedback_short,
+        caregiverNote,
+        timestamp: sessionDate,
       });
       saveAnalytics({
         promptId, stressScore: result.stress_score, indicators: result.indicators,
         pattern: result.pattern, thresholdMet: result.threshold_met,
       });
+
+      if (isAzureUploadConfigured()) {
+        setAnalyzeStage('Uploading session to clinic storage...');
+        const canvasEl = canvasRef.current?.getCanvas?.();
+        const canvasBlob = await new Promise((resolve) => {
+          if (!canvasEl) {
+            resolve(null);
+            return;
+          }
+          canvasEl.toBlob((b) => resolve(b), 'image/png');
+        });
+        try {
+          await uploadSessionReplayToAzure({
+            patientId: VOICECANVAS_PATIENT_ID,
+            sessionId,
+            videoBlob: videoBlob && videoBlob.size > 0 ? videoBlob : null,
+            canvasBlob: canvasBlob instanceof Blob && canvasBlob.size > 0 ? canvasBlob : null,
+            canvasDataUrl: dataUrl,
+            meta: {
+              promptTitle: prompt.title,
+              promptId,
+              sessionDate,
+              stressScore: result.stress_score ?? null,
+              patientName: profile?.name ?? null,
+            },
+          });
+        } catch (err) {
+          console.warn('Azure session upload failed:', err);
+        }
+      }
+
       navigate('/session-results', { state: { result, canvasImage: dataUrl, promptId, liveMode: sessionMode === 'live' } });
     }
     setIsProcessing(false);
@@ -245,6 +357,10 @@ export default function DrawingSession({ promptOverride }) {
           videoRef.current.onloadeddata = () => {
             setCameraReady(true);
             setCanvasDimensions({ width: videoRef.current.videoWidth, height: videoRef.current.videoHeight });
+            if (!webcamRecordingStartedRef.current) {
+              webcamRecordingStartedRef.current = true;
+              startWebcamRecording(stream, mediaRecorderRef, recordedChunksRef);
+            }
           };
         }
       } catch (err) {
@@ -253,7 +369,13 @@ export default function DrawingSession({ promptOverride }) {
       }
     }
     initCamera();
-    return () => { stream?.getTracks().forEach(t => t.stop()); stopTracking(); stopSignRecognition(); };
+    return () => {
+      webcamRecordingStartedRef.current = false;
+      abortWebcamRecording(mediaRecorderRef);
+      stream?.getTracks().forEach(t => t.stop());
+      stopTracking();
+      stopSignRecognition();
+    };
   }, [stopTracking, stopSignRecognition]);
 
   useEffect(() => {
