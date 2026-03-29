@@ -1,10 +1,9 @@
 import { useState, useCallback } from 'react';
 
 /**
- * Hook for Claude API integration via server proxy.
- * All requests go through /api/analyze/* — no direct browser API calls.
+ * LLM calls via server proxy (GPT-4o). All requests go through /api/analyze/*.
  */
-export function useClaude() {
+export function useLlm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
@@ -43,7 +42,6 @@ export function useClaude() {
       /* proxy unavailable, fall through to mock */
     }
 
-    // Fallback: mock data
     await new Promise(r => setTimeout(r, 2000));
     const mockResult = getMockDrawingResult(assessmentType);
     setResult(mockResult);
@@ -56,7 +54,7 @@ export function useClaude() {
       const response = await makeRequest('/api/analyze/sign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: frameDataUrl }),
+        body: JSON.stringify({ frameBase64: frameDataUrl }),
       });
       if (response.ok) {
         return await response.json();
@@ -93,7 +91,7 @@ export function useClaude() {
     return null;
   }, []);
 
-  const findResources = useCallback(async (location) => {
+  const findResources = useCallback(async (_location) => {
     setLoading(true);
     setError(null);
 
@@ -125,15 +123,15 @@ function getMockDrawingResult(assessmentType = 'Free Expression') {
       subjective: `Patient completed a ${assessmentType} assessment. Reports feelings of persistent low mood and situational anxiety. Noted preference for quiet activities and avoids large social gatherings.`,
       objective: `Visual expression displays significant center-placement on canvas. Line quality is varying but controlled. Color palette includes both cool and warm tones, indicating complex emotional processing. Participant was cooperative and took approximately 4 minutes to complete the task.`,
       assessment: `Signs of moderate anxiety consistent with situational stress. No acute markers of psychosis or self-harm but indicates a need for regular therapeutic outpatient care. Personality indicators suggest a resourceful but currently overwhelmed individual.`,
-      plan: `1. Weekly individual psychotherapy (CBT model). 2. Referral for psychiatric evaluation for potential pharmacotherapy. 3. Family therapy session in 2 weeks. 4. Continue digital expressive therapy daily.`
+      plan: `1. Weekly individual psychotherapy (CBT model). 2. Referral for psychiatric evaluation for potential pharmacotherapy. 3. Family therapy session in 2 weeks. 4. Continue digital expressive therapy daily.`,
     },
     insurance_data: {
       chiefComplaint: `Persistent anxiety and emotional isolation identified through ${assessmentType} assessment.`,
       symptomDuration: '3-6 months',
       functionalImpairment: 'Patient reports difficulty focusing at work and withdrawal from primary social circle.',
       diagnosisCategory: 'Other specified anxiety disorder (F41.8)',
-      requestedService: 'both'
-    }
+      requestedService: 'both',
+    },
   };
 }
 

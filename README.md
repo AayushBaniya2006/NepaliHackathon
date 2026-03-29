@@ -8,7 +8,7 @@ VoiceCanvas is a browser-based app for people who struggle to communicate verbal
 
 - React (Vite)
 - MediaPipe Hands (gesture / drawing)
-- Claude API (vision + clinical note generation)
+- OpenAI GPT-4o (vision + clinical note generation via server proxy)
 - ElevenLabs (optional text-to-speech)
 - Local storage for demo sessions
 
