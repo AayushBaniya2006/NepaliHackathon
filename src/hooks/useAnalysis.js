@@ -103,7 +103,7 @@ export function useAnalysis() {
     }
   };
 
-  const analyzeDrawing = useCallback(async (canvasDataUrl, promptId, promptLabel) => {
+  const analyzeDrawing = useCallback(async (canvasDataUrl, promptId, promptLabel, emotionTimeline = []) => {
     setLoading(true);
     setError(null);
 
@@ -112,7 +112,12 @@ export function useAnalysis() {
       const response = await makeRequest('/api/analyze/drawing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: canvasDataUrl, promptId, promptLabel }),
+        body: JSON.stringify({
+          imageBase64: canvasDataUrl,
+          promptId,
+          promptLabel,
+          emotionTimeline,
+        }),
       });
       if (response.ok) {
         const result = await response.json();
@@ -126,6 +131,24 @@ export function useAnalysis() {
     // Fallback: mock data
     await new Promise(r => setTimeout(r, 2500));
     const mock = getMockAnalysis(promptId);
+
+    // Enhance mock with facial emotion context if available
+    if (emotionTimeline.length > 0) {
+      const emotionCounts = {};
+      emotionTimeline.forEach(({ emotion }) => {
+        emotionCounts[emotion] = (emotionCounts[emotion] || 0) + 1;
+      });
+      const dominantFacialEmotion = Object.keys(emotionCounts).reduce((a, b) =>
+        emotionCounts[a] > emotionCounts[b] ? a : b
+      );
+
+      mock.facial_analysis = {
+        dominant_emotion: dominantFacialEmotion,
+        timeline: emotionTimeline,
+        note: `Facial expressions tracked during session. Dominant emotion: ${dominantFacialEmotion}`,
+      };
+    }
+
     setLoading(false);
     return mock;
   }, []);

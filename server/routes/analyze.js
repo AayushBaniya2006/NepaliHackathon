@@ -3,13 +3,68 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
+const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_MODEL = 'gpt-4o';
+
 function validateBase64(str, maxSizeMB = 5) {
   if (typeof str !== 'string') return false;
   const sizeBytes = (str.length * 3) / 4;
   return sizeBytes < maxSizeMB * 1024 * 1024;
 }
 
-const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
+/** Accept raw base64 or full data URL; return a data URL OpenAI accepts */
+function toDataImageUrl(input) {
+  if (typeof input !== 'string') return null;
+  if (input.startsWith('data:image/')) return input;
+  const cleaned = input.replace(/^data:image\/\w+;base64,/, '');
+  return `data:image/png;base64,${cleaned}`;
+}
+
+function parseAssistantJson(text) {
+  if (!text || typeof text !== 'string') return null;
+  let t = text.trim();
+  const fence = /^```(?:json)?\s*\n?([\s\S]*?)\n?```$/m.exec(t);
+  if (fence) t = fence[1].trim();
+  try {
+    return JSON.parse(t);
+  } catch {
+    return null;
+  }
+}
+
+async function openaiChat(apiKey, { system, userContent, maxTokens = 1500 }) {
+  const messages = [];
+  if (system) messages.push({ role: 'system', content: system });
+  messages.push({ role: 'user', content: userContent });
+
+  const response = await fetch(OPENAI_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: OPENAI_MODEL,
+      max_tokens: maxTokens,
+      messages,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const msg = data.error?.message || response.statusText || 'OpenAI request failed';
+    const err = new Error(msg);
+    err.status = response.status;
+    throw err;
+  }
+  if (data.error) {
+    const msg = data.error.message || 'OpenAI request failed';
+    const err = new Error(msg);
+    err.status = response.status || 500;
+    throw err;
+  }
+  return data.choices?.[0]?.message?.content?.trim() || '';
+}
 
 const ANALYSIS_SYSTEM_PROMPT = `You are a clinical art therapy analysis AI. Analyze the drawing for clinical markers:
 - Color histogram: estimate red%, black%, warm/cool distribution
@@ -33,8 +88,8 @@ Output ONLY valid JSON with this exact structure:
 }`;
 
 router.post('/drawing', authMiddleware, async (req, res) => {
-  const apiKey = process.env.CLAUDE_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'CLAUDE_API_KEY not configured' });
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'OPENAI_API_KEY not configured' });
 
   try {
     const { imageBase64, promptId, promptLabel } = req.body;
@@ -44,117 +99,95 @@ router.post('/drawing', authMiddleware, async (req, res) => {
     if (promptLabel && promptLabel.length > 200) {
       return res.status(400).json({ error: 'Prompt label too long' });
     }
-    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+    const imageUrl = toDataImageUrl(imageBase64);
+    if (!imageUrl) return res.status(400).json({ error: 'Invalid image data' });
 
-    const response = await fetch(CLAUDE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        system: ANALYSIS_SYSTEM_PROMPT,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/png', data: base64Data } },
-            { type: 'text', text: `Analyze this nonverbal patient's "${promptLabel || promptId}" drawing for clinical stress indicators. Return ONLY the JSON.` },
-          ],
-        }],
-      }),
+    const userText = `Analyze this nonverbal patient's "${promptLabel || promptId}" drawing for clinical stress indicators. Return ONLY the JSON.`;
+    const userContent = [
+      { type: 'image_url', image_url: { url: imageUrl } },
+      { type: 'text', text: userText },
+    ];
+
+    const text = await openaiChat(apiKey, {
+      system: ANALYSIS_SYSTEM_PROMPT,
+      userContent,
+      maxTokens: 1500,
     });
 
-    const data = await response.json();
-    if (data.error) return res.status(500).json({ error: data.error.message });
-
-    const text = data.content?.[0]?.text || '';
-    try {
-      const result = JSON.parse(text);
-      res.json(result);
-    } catch {
-      res.json({ raw: text });
-    }
+    const parsed = parseAssistantJson(text);
+    if (parsed) return res.json(parsed);
+    return res.json({ raw: text });
   } catch (err) {
     console.error('Analysis error:', err);
-    res.status(500).json({ error: 'Analysis failed. Please try again.' });
+    const status = err.status >= 400 && err.status < 600 ? err.status : 500;
+    res.status(status).json({ error: err.message || 'Analysis failed. Please try again.' });
   }
 });
 
+const SIGN_USER_INSTRUCTION = 'Identify any ASL sign in this frame. Return JSON: { "recognized": boolean, "sign": "word", "confidence": "high|medium|low", "description": "brief" }';
+
 router.post('/sign', authMiddleware, async (req, res) => {
-  const apiKey = process.env.CLAUDE_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'CLAUDE_API_KEY not configured' });
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'OPENAI_API_KEY not configured' });
 
   try {
-    const { frameBase64 } = req.body;
-    if (!frameBase64 || !validateBase64(frameBase64)) {
+    const frame = req.body.frameBase64 ?? req.body.imageBase64;
+    if (!frame || !validateBase64(frame)) {
       return res.status(400).json({ error: 'Invalid or oversized frame data' });
     }
-    const base64Data = frameBase64.replace(/^data:image\/\w+;base64,/, '');
+    const imageUrl = toDataImageUrl(frame);
+    if (!imageUrl) return res.status(400).json({ error: 'Invalid frame data' });
 
-    const response = await fetch(CLAUDE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 256,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/png', data: base64Data } },
-            { type: 'text', text: 'Identify any ASL sign in this frame. Return JSON: { "recognized": boolean, "sign": "word", "confidence": "high|medium|low", "description": "brief" }' },
-          ],
-        }],
-      }),
+    const userContent = [
+      { type: 'image_url', image_url: { url: imageUrl } },
+      { type: 'text', text: SIGN_USER_INSTRUCTION },
+    ];
+
+    const text = await openaiChat(apiKey, {
+      system: 'You assist with ASL and gesture recognition for accessibility. Reply with only valid JSON, no markdown.',
+      userContent,
+      maxTokens: 256,
     });
 
-    const data = await response.json();
-    const text = data.content?.[0]?.text || '{}';
-    try { res.json(JSON.parse(text)); } catch { res.json({ recognized: false }); }
+    const parsed = parseAssistantJson(text);
+    if (parsed) return res.json(parsed);
+    try {
+      return res.json(JSON.parse(text));
+    } catch {
+      return res.json({ recognized: false });
+    }
   } catch (err) {
     console.error('Analysis error:', err);
-    res.status(500).json({ error: 'Analysis failed. Please try again.' });
+    const status = err.status >= 400 && err.status < 600 ? err.status : 500;
+    res.status(status).json({ error: err.message || 'Analysis failed. Please try again.' });
   }
 });
 
 router.post('/sign-message', authMiddleware, async (req, res) => {
-  const apiKey = process.env.CLAUDE_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'CLAUDE_API_KEY not configured' });
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'OPENAI_API_KEY not configured' });
 
   try {
     const { signedWords } = req.body;
     if (!signedWords || !Array.isArray(signedWords) || signedWords.length > 100) {
       return res.status(400).json({ error: 'Invalid signed words' });
     }
-    const response = await fetch(CLAUDE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1024,
-        messages: [{
-          role: 'user',
-          content: `A nonverbal person signed these words: ${signedWords.join(', ')}. Interpret as a mental health communication. Return JSON with: personal_statement, clinical_note {S,O,A,P}, stress_score (1-10), indicators, insurance_data.`,
-        }],
-      }),
+
+    const userText = `A nonverbal person signed these words: ${signedWords.join(', ')}. Interpret as a mental health communication. Return JSON with: personal_statement, clinical_note {S,O,A,P}, stress_score (1-10), indicators, insurance_data. Return ONLY valid JSON, no markdown.`;
+
+    const text = await openaiChat(apiKey, {
+      system: 'You are an empathetic mental health communication assistant. Output only valid JSON.',
+      userContent: userText,
+      maxTokens: 1024,
     });
 
-    const data = await response.json();
-    const text = data.content?.[0]?.text || '{}';
-    try { res.json(JSON.parse(text)); } catch { res.json({ raw: text }); }
+    const parsed = parseAssistantJson(text);
+    if (parsed) return res.json(parsed);
+    return res.json({ raw: text });
   } catch (err) {
     console.error('Analysis error:', err);
-    res.status(500).json({ error: 'Analysis failed. Please try again.' });
+    const status = err.status >= 400 && err.status < 600 ? err.status : 500;
+    res.status(status).json({ error: err.message || 'Analysis failed. Please try again.' });
   }
 });
 

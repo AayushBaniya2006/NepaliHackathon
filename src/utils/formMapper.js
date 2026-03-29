@@ -1,7 +1,7 @@
 /**
- * Maps Claude's insurance_data to form fields
+ * Maps model `insurance_data` (snake_case) to insurance form fields
  */
-export function mapClaudeToForm(insuranceData) {
+export function mapInsuranceDataToForm(insuranceData) {
   if (!insuranceData) return getEmptyForm();
 
   return {

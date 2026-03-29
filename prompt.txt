@@ -11,7 +11,7 @@ These came from our roadmap and product talks:
 
 Crisis detection from AI — Auto-flag acute distress and surface 988 / Crisis Text in-session or on results (not just on Resource Finder).
 ElevenLabs on the real results path — After a drawing session, SessionResults should play voice (patient language + optional English for doctor), with a language selector.
-Multilingual pipeline — Profile language → Claude outputs patient + English → TTS in chosen language (Nepali, Spanish, etc.).
+Multilingual pipeline — Profile language → LLM outputs patient + English → TTS in chosen language (Nepali, Spanish, etc.).
 “Live session” mode — Patient + doctor on call; English voice to doctor, native text/voice to patient.
 Session replay (doctor) — Replay drawing stroke-by-stroke + facial expression timeline + AI notes for documentation (not implemented).
 Doctor finder — Zip / filters (language, specialty, insurance, VoiceCanvas badge), “Connect” (mock is fine).

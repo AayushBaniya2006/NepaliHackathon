@@ -6,7 +6,8 @@ import GestureIndicator from '../components/GestureIndicator';
 import SignLanguagePanel from '../components/SignLanguagePanel';
 import BrainActivity from '../components/BrainActivity';
 import { useMediaPipe } from '../hooks/useMediaPipe';
-import { useClaude } from '../hooks/useClaude';
+import { useFaceEmotion } from '../hooks/useFaceEmotion';
+import { useLlm } from '../hooks/useLlm';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { useStorage } from '../hooks/useStorage';
 import { getPromptById, DRAWING_PROMPTS } from '../utils/drawingPrompts';
@@ -140,6 +141,8 @@ export default function DrawingSession({ promptOverride }) {
   const [voiceState, setVoiceState] = useState('idle'); // 'idle' | 'loading' | 'playing'
   const [analyzeProgress, setAnalyzeProgress] = useState(0);
   const [analyzeStage, setAnalyzeStage] = useState('');
+  const [currentEmotion, setCurrentEmotion] = useState(null);
+  const [emotionTimeline, setEmotionTimeline] = useState([]);
 
   const stampCooldownRef = useRef(false);
   const [stampFeedbackName, setStampFeedbackName] = useState('');
@@ -147,7 +150,7 @@ export default function DrawingSession({ promptOverride }) {
   const recordedChunksRef = useRef([]);
   const webcamRecordingStartedRef = useRef(false);
 
-  const { recognizeSign, interpretSignMessage, loading: claudeLoading } = useClaude();
+  const { recognizeSign, interpretSignMessage, loading: llmLoading } = useLlm();
   const { analyzeDrawing, loading: analysisLoading } = useAnalysis();
   const { saveSession, saveAnalytics, profile } = useStorage();
 
@@ -229,7 +232,7 @@ export default function DrawingSession({ promptOverride }) {
 
     // Stage 2: Analysis (30-70%)
     setAnalyzeProgress(45);
-    const result = await analyzeDrawing(dataUrl, promptId, prompt.title);
+    const result = await analyzeDrawing(dataUrl, promptId, prompt.title, emotionTimeline);
     setAnalyzeProgress(70);
     setAnalyzeStage('Generating clinical note...');
 
@@ -250,6 +253,7 @@ export default function DrawingSession({ promptOverride }) {
         feedbackShort: result.feedback_short,
         caregiverNote,
         timestamp: sessionDate,
+        emotionTimeline,
       });
       saveAnalytics({
         promptId, stressScore: result.stress_score, indicators: result.indicators,
@@ -343,7 +347,12 @@ export default function DrawingSession({ promptOverride }) {
     if (newMode === 'sign' && cameraReady) startSignRecognition();
   };
 
+  const handleEmotionChange = useCallback((emotionData) => {
+    setCurrentEmotion(emotionData);
+  }, []);
+
   const { isLoaded, error: mpError, startTracking, stopTracking } = useMediaPipe(videoRef, handleGesture);
+  const { isLoaded: emotionLoaded, error: emotionError, startTracking: startEmotionTracking, stopTracking: stopEmotionTracking } = useFaceEmotion(videoRef, handleEmotionChange);
 
   useEffect(() => {
     let stream = null;
@@ -374,13 +383,39 @@ export default function DrawingSession({ promptOverride }) {
       abortWebcamRecording(mediaRecorderRef);
       stream?.getTracks().forEach(t => t.stop());
       stopTracking();
+      stopEmotionTracking();
       stopSignRecognition();
     };
-  }, [stopTracking, stopSignRecognition]);
+  }, [stopTracking, stopEmotionTracking, stopSignRecognition]);
 
   useEffect(() => {
     if (cameraReady && isLoaded && mode === 'draw') startTracking();
   }, [cameraReady, isLoaded, startTracking, mode]);
+
+  useEffect(() => {
+    if (cameraReady && emotionLoaded) startEmotionTracking();
+  }, [cameraReady, emotionLoaded, startEmotionTracking]);
+
+  // Sample emotions every 3 seconds and add to timeline
+  useEffect(() => {
+    if (!cameraReady || !currentEmotion || currentEmotion.emotion === 'no_face') return;
+
+    const interval = setInterval(() => {
+      if (currentEmotion && currentEmotion.emotion !== 'no_face') {
+        const timestamp = Date.now();
+        const timeInSession = Math.floor((TIMER_SECONDS * 1000 - timeLeft * 1000) / 1000);
+
+        setEmotionTimeline(prev => [...prev, {
+          time: timeInSession,
+          emotion: currentEmotion.emotion,
+          confidence: currentEmotion.confidence,
+          timestamp,
+        }]);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [cameraReady, currentEmotion, timeLeft]);
 
   useEffect(() => {
     if (mode === 'sign' && cameraReady) startSignRecognition();
@@ -473,7 +508,7 @@ export default function DrawingSession({ promptOverride }) {
           )}
           {mode === 'sign' && (
             <button className="btn btn-sm btn-primary"
-              onClick={handleSignSpeak} disabled={isProcessing || claudeLoading || recognizedWords.length === 0}>
+              onClick={handleSignSpeak} disabled={isProcessing || llmLoading || recognizedWords.length === 0}>
               {isProcessing ? 'Processing...' : 'Speak'}
             </button>
           )}
@@ -710,11 +745,21 @@ export default function DrawingSession({ promptOverride }) {
               <span>Emotion</span>
               <span className="ds-live-badge">Live</span>
             </div>
-            {analysisResult ? (
+            {currentEmotion && currentEmotion.emotion !== 'no_face' ? (
               <div className="ds-emotion-result">
-                <span className="ds-emotion-emoji">{analysisResult.feedback_emoji || '🎭'}</span>
-                <span className="ds-emotion-label">{analysisResult.indicators?.dominant_mood || 'Processing'}</span>
-                <GestureConfidenceBar confidence={analysisResult.stress_score ? analysisResult.stress_score / 10 : 0} />
+                <span className="ds-emotion-emoji">
+                  {currentEmotion.emotion === 'happy' && '😊'}
+                  {currentEmotion.emotion === 'sad' && '😢'}
+                  {currentEmotion.emotion === 'angry' && '😠'}
+                  {currentEmotion.emotion === 'fearful' && '😨'}
+                  {currentEmotion.emotion === 'disgusted' && '🤢'}
+                  {currentEmotion.emotion === 'surprised' && '😮'}
+                  {currentEmotion.emotion === 'neutral' && '😐'}
+                </span>
+                <span className="ds-emotion-label">
+                  {currentEmotion.emotion.charAt(0).toUpperCase() + currentEmotion.emotion.slice(1)}
+                </span>
+                <GestureConfidenceBar confidence={currentEmotion.confidence} />
               </div>
             ) : (
               <div className="ds-emotion-detecting">
@@ -722,7 +767,7 @@ export default function DrawingSession({ promptOverride }) {
                   animate={{ opacity: [0.4, 1, 0.4] }}
                   transition={{ duration: 2, repeat: Infinity }}
                 >
-                  Detecting...
+                  {emotionLoaded ? (currentEmotion?.emotion === 'no_face' ? 'No face detected' : 'Detecting...') : 'Loading emotion detection...'}
                 </motion.span>
               </div>
             )}

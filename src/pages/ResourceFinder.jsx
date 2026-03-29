@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useClaude } from '../hooks/useClaude';
+import { useLlm } from '../hooks/useLlm';
 import './ResourceFinder.css';
 
 const TYPE_ICONS = {
@@ -14,7 +14,7 @@ const TYPE_ICONS = {
 
 export default function ResourceFinder() {
   const navigate = useNavigate();
-  const { findResources, loading } = useClaude();
+  const { findResources, loading } = useLlm();
   const [zipCode, setZipCode] = useState('');
   const [resources, setResources] = useState(null);
   const [locationMethod, setLocationMethod] = useState(null);
