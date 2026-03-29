@@ -15,16 +15,41 @@ VoiceCanvas bypasses verbal communication entirely. Patients draw their feelings
 
 ## Core Features
 
-**Patient Flow**
+**VoiceCanvas — Full feature list (for patients)
 
-- Webcam gesture drawing (MediaPipe hand tracking: index finger draws, pinch erases, fist clears)
-- Real-time facial emotion detection (TensorFlow.js via face-api.js: 7 emotions at 10 FPS)
-- Deterministic analysis with dedicated ml models + fractal dimension algorithm (box-counting across 7 scales)
-- Multilingual voice feedback (ElevenLabs eleven_v3 with Nepali language_code support)
-- Session replay with emotion overlays burned into video and stored in Azure
-- Care Board for family/friend supportive notes
-- Doctor directory with Women Mode for trauma survivors
-- 5 clinical drawing prompts: Energy Circle, Body Map, Weather Mood, Safe Place, Worry Shape
+Draw your feelings
+
+Use your hand in front of the camera — no stylus required. Index finger draws, pinch erases, fist clears; you can also use stamps and (if the camera isn’t available) draw with the mouse on a fallback canvas.
+Pick from five guided prompts: Energy Circle, Body Map, Day Weather, Safe Thing, and Worry Shape (each tied to a short clinical-style description in the app).
+Optional sign mode for camera-based sign capture with AI-assisted interpretation when the backend is connected.
+Solo vs live session mode for how the session is framed.
+A session timer and a “brain activity” panel that reacts to your gestures as on-screen feedback (not medical brain imaging).
+AI reads your art
+
+When you finish, the app sends your drawing image to a vision AI (Anthropic Claude when the server is running) and returns a stress score, mood-style indicators, color and line cues, a short pattern summary, a SOAP-style clinical note, text suited for insurance-style fields, and a first-person style personal statement. If the API isn’t available, the app can still run with built-in demo analysis so the flow works offline.
+Hear your results
+
+The personal summary can be read aloud with AI voice (ElevenLabs via the server when configured), or with your browser’s built-in text-to-speech. Onboarding language helps tailor the experience; the app supports multiple languages in the UI (e.g. English and Nepali) where implemented.
+Session history & dashboard
+
+See past sessions, stress trends, and shortcuts to draw again or open other tools.
+Care board
+
+Share a private link so family or friends can leave notes or photos on your board without creating an account.
+Find a doctor
+
+Browse sample / demo providers with filters (e.g. language, specialty). Women Mode shows women clinicians only when you need that.
+After each session
+
+Send your session to a doctor from a picker sheet (same Women Mode available there).
+Download a clinical PDF, open health apps & wearables helpers (FHIR JSON and wellness export for your care team).
+When Azure is configured, the app can upload webcam replay + drawing so your clinic can open the same session on their side.
+Crisis support
+
+If your stress score is high or a crisis flag appears, the app surfaces 988 and crisis text line options on the results screen.
+More in the app
+
+Onboarding (profile and preferences), resource finder for support links, a demo insurance / claims-style form (clearly marked as demo), and an embedded clinician-style view for walkthroughs — all in the same patient app.
 
 **Clinical Workflow**
 
