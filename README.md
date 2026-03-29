@@ -25,7 +25,7 @@ Accurate to this codebase. *Demo / hackathon build — not a medical device; see
 - **Five guided prompts** (see `src/utils/drawingPrompts.js`): **Energy Circle**, **Body Map**, **Day Weather**, **Safe Thing**, **Worry Shape** — each includes a short clinical-style blurb in the UI.
 - **Session timer** during the draw flow.
 - **Solo vs Live** mode toggle (how the session is framed for interpretation).
-- **Draw vs Sign** mode: sign mode periodically captures camera frames and can send them through the **Claude** proxy for sign-related interpretation when the backend is up.
+- **Draw vs Sign** mode: sign mode periodically captures camera frames and can send them through the **LLM** proxy for sign-related interpretation when the backend is up.
 - **Brain activity** panel — Toggle **Brain** on the drawing header: animated **brain regions** (e.g. motor, visual, emotional areas) light up based on **gesture and drawing state** as **biofeedback-style engagement** (illustrative UI, not a medical brain scan).
 - **Caregiver notes** (drawing session) — Optional **Notes** panel: quick context such as **skipped meals**, **meltdown count**, and **sleep** quality; saved with the session when you analyze.
 - **Live session metrics** (drawing session, side column) — While drawing, the UI can show **stroke-speed sparkline** (`LiveSparkline`), **canvas coverage heatmap** (`CanvasHeatmap`), and **gesture confidence** — telemetry that supports the “evidence for the AI” story (stored/analytics paths vary by setup).
@@ -38,7 +38,7 @@ Accurate to this codebase. *Demo / hackathon build — not a medical device; see
 
 ### AI reads your art
 
-- On submit, the **canvas image** is sent to **`/api/analyze/drawing`** (Express proxy → **Anthropic Claude**) when configured. The model returns structured fields: **stress score**, **mood-style indicators**, **color/line/placement** cues, **pattern text**, **SOAP-style clinical note** (subjective / objective / assessment / plan), **personal statement**, and **insurance-oriented** text where populated.
+- On submit, the **canvas image** is sent to **`/api/analyze/drawing`** (Express proxy → **LLM MODEL**) when configured. The model returns structured fields: **stress score**, **mood-style indicators**, **color/line/placement** cues, **pattern text**, **SOAP-style clinical note** (subjective / objective / assessment / plan), **personal statement**, and **insurance-oriented** text where populated.
 - If the server is down or keys are missing, **`useAnalysis`** can use **built-in mock responses** so the UI still demos end-to-end.
 
 ### Hear your results
