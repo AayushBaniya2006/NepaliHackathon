@@ -125,11 +125,57 @@ npm run build && npm run preview   # Production build
 
 **Key Environment Variables**
 
-- `OPENAI_API_KEY` - Required for GPT-4o analysis
-- `ELEVENLABS_API_KEY` - Optional for Nepali voice synthesis
-- `MONGODB_URI` - Session/user persistence
-- `JWT_SECRET` - Auth token signing
-- `VITE_AZURE_STORAGE_`* - Optional session replay uploads
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `CLAUDE_API_KEY` | **Yes** for real AI | Anthropic API key. Drawing/sign analysis proxied through Express (`/api/analyze/*`). Without it, the UI can fall back to **mock** analysis. **Not** `OPENAI_API_KEY`. |
+| `ELEVENLABS_API_KEY` | No | ElevenLabs TTS (`/api/voice/speak`). If missing, the app uses **browser speech synthesis** (works for many languages including Nepali where the browser supports it; quality varies). |
+| `JWT_SECRET` | Yes when using protected `/api` routes | Signs JWTs for session/auth middleware on the Express server. |
+| `PORT` | No | Express port (default **3001**). |
+| `ALLOWED_ORIGINS` | No | CORS for Express. Comma-separated origins, e.g. `http://localhost:5173,https://your-app.vercel.app`. |
+| `VITE_AZURE_STORAGE_ACCOUNT` | No* | Azure Storage **account name** for **session replay upload** (webcam + PNG + JSON). *Required* if you want clinician replay. |
+| `VITE_AZURE_STORAGE_CONTAINER` | No* | Blob **container** name (e.g. `session-replays`). |
+| `VITE_AZURE_STORAGE_SAS` | No* | SAS token **without** leading `?`. Must allow **read/write** for uploads. |
+| `VITE_VOICECANVAS_PATIENT_ID` | No | Folder prefix in Azure, e.g. `pt-001`. Must match the patient id in the **doctor app** replay URL (`/replay/pt-001`). |
+
+**Vercel / static hosting:** A default Vercel deploy often serves **only** the Vite build. Putting `CLAUDE_API_KEY` in Vercel env does **not** run Express unless you add **serverless** routes or host the API elsewhere—otherwise analysis may use **mock** data and `/api/voice` will not work unless proxied.
+
+---
+
+### Doctor SaaS — clinic frontend (`doctor-saas/frontend/.env`)
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `VITE_AZURE_STORAGE_ACCOUNT` | No* | Same container as VoiceCanvas for **Session Replay**. |
+| `VITE_AZURE_STORAGE_CONTAINER` | No* | Same as above. |
+| `VITE_AZURE_STORAGE_SAS` | No* | SAS must allow **GET** (and **PUT/DELETE** if updating manifest / deleting sessions). **Blob CORS** must allow your clinic **origin**. |
+| `VITE_RECLAIMANT_API_URL` | No | Flask appeals API base (default `http://localhost:5001`). Set to your deployed Flask URL in production. |
+| `VITE_OPENAI_API_KEY` | No | Optional; some client utilities (`appealGenerator.js`) can use this if present. |
+| `VITE_ANTHROPIC_API_KEY` | No | Optional client-side override for appeal helpers. |
+| `VITE_ELEVENLABS_API_KEY` | No | Optional TTS in clinic utilities. |
+| `VITE_GOOGLE_CLIENT_ID` / `VITE_GOOGLE_API_KEY` | No | Optional Gmail-related client config (see `gmailService.js`). |
+
+Patient id for replay comes from the **URL** (`/replay/:patientId`), not from a `VITE_` variable.
+
+---
+
+### Doctor SaaS — Flask appeals API (`doctor-saas/backend/.env`)
+
+Used for **Reclaimant**: denial analysis, embeddings, precedent match, Gmail send.
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `OPENAI_API_KEY` | **Yes** for live AI | OpenAI key. Backend uses **`gpt-4o-mini`** and **`text-embedding-3-small`** (see `ai_service.py`) — not GPT-4 unless you change the code. |
+| `MONGODB_URI` | Yes for persistence | e.g. `mongodb://localhost:27017/` |
+| `MONGODB_DB_NAME` | No | Default `voicecanvas_appeals`. |
+| `GOOGLE_CLIENT_ID` | For real Gmail send | OAuth client. |
+| `GOOGLE_CLIENT_SECRET` | For real Gmail send | OAuth secret. |
+| `GOOGLE_REFRESH_TOKEN` | For real Gmail send | Refresh token for the sending account. |
+| `DEMO_MODE` | No | `true` avoids sending real mail in demos. |
+| `TEST_EMAIL` | No | Redirect test sends when in demo mode. |
+| `PORT` | No | Flask port (default **5001**). |
+
+---
 
 ## API Routes & Endpoints
 
