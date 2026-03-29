@@ -162,26 +162,30 @@ export default function CareNote() {
                 </p>
               </div>
 
-              {/* Live preview sticky */}
-              <div
-                className="cn-preview"
-                style={{ background: chosenColor.bg, transform: `rotate(${-1.5}deg)` }}
-              >
-                {imageDataUrl ? (
-                  <div className="cn-preview-polaroid">
-                    <img src={imageDataUrl} alt="preview" className="cn-preview-img" />
-                    <p className="cn-preview-author">— {author || 'A friend'}</p>
+              <div className="cn-body-row">
+                <div className="cn-preview-column">
+                  {/* Live preview sticky */}
+                  <div
+                    className="cn-preview"
+                    style={{ background: chosenColor.bg, transform: `rotate(${-1.5}deg)` }}
+                  >
+                    {imageDataUrl ? (
+                      <div className="cn-preview-polaroid">
+                        <img src={imageDataUrl} alt="preview" className="cn-preview-img" />
+                        <p className="cn-preview-author">— {author || 'A friend'}</p>
+                      </div>
+                    ) : (
+                      <>
+                        {emoji && <span className="cn-preview-emoji">{emoji}</span>}
+                        <p className="cn-preview-text">{text || 'Your message will appear here…'}</p>
+                        <p className="cn-preview-author">— {author || 'A friend'}</p>
+                      </>
+                    )}
                   </div>
-                ) : (
-                  <>
-                    {emoji && <span className="cn-preview-emoji">{emoji}</span>}
-                    <p className="cn-preview-text">{text || 'Your message will appear here…'}</p>
-                    <p className="cn-preview-author">— {author || 'A friend'}</p>
-                  </>
-                )}
-              </div>
+                </div>
 
-              <form className="cn-form" onSubmit={handleSubmit}>
+                <div className="cn-form-column">
+                  <form className="cn-form" onSubmit={handleSubmit}>
                 {/* Emoji quick-pick */}
                 {!imageDataUrl && (
                   <div className="cn-field">
@@ -290,9 +294,11 @@ export default function CareNote() {
                 </button>
               </form>
 
-              <p className="cn-privacy">
-                🔒 Your note is private to this person's board. No account required.
-              </p>
+                  <p className="cn-privacy">
+                    🔒 Your note is private to this person's board. No account required.
+                  </p>
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

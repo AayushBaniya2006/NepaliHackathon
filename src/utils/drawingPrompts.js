@@ -2,7 +2,7 @@ export const DRAWING_PROMPTS = [
   {
     id: 'energy',
     title: 'Energy Circle',
-    instruction: 'Fill this circle with lines and colors that show your energy right now.',
+    instruction: 'Fill this area with lines and colors that show your energy right now.',
     description: 'How much energy do you have? What does it look like?',
     icon: '⚡',
     color: '#F59E0B',

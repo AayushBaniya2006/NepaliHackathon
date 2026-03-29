@@ -167,7 +167,7 @@ export default function FindDoctor() {
   const navigate = useNavigate();
   const [telehealthOnly, setTelehealthOnly] = useState(false);
   const [vcOnly, setVcOnly] = useState(false);
-  const [confirming, setConfirming] = useState(null); 
+  const [confirming, setConfirming] = useState(null);
   const [connectedId, setConnectedId] = useState(() => {
     try { return localStorage.getItem('mc_connected_doctor_id') || null; } catch { return null; }
   });
@@ -194,7 +194,7 @@ export default function FindDoctor() {
       {/* Header */}
       <header className="fd-header">
         <div className="fd-hero">
-          <h1>Choose Specialist</h1>
+          <h1>Choose Our Vetted Specialist</h1>
         </div>
         <div className="fd-header-inner">
           <button className="btn-ghost" onClick={() => navigate('/dashboard')}>
@@ -246,10 +246,10 @@ export default function FindDoctor() {
                   <h3 className="fd-card-name">{doctor.name}</h3>
                   <div className="fd-card-role">{doctor.credentials}</div>
                   <div className="fd-card-actions">
-                    <button 
-                       className="btn-book"
-                       onClick={() => isConnected ? null : setConfirming(doctor)}
-                       style={isConnected ? { background: '#10B981', color: 'white' } : {}}
+                    <button
+                      className="btn-book"
+                      onClick={() => isConnected ? null : setConfirming(doctor)}
+                      style={isConnected ? { background: '#10B981', color: 'white' } : {}}
                     >
                       {isConnected ? 'Connected' : 'Book Now'}
                     </button>
@@ -280,7 +280,7 @@ export default function FindDoctor() {
               onClick={e => e.stopPropagation()}
             >
               <h3>Connect with {confirming.name}?</h3>
-              <p style={{margin: '15px 0', color: '#4B5563', lineHeight: '1.5'}}>
+              <p style={{ margin: '15px 0', color: '#4B5563', lineHeight: '1.5' }}>
                 This will securely share your VoiceCanvas session history and drawing assessments with Dr. {confirming.name.split(' ')[1]}.
               </p>
               <div className="fd-modal-actions">
