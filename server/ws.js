@@ -8,44 +8,8 @@ export function setupWebSocket(server) {
   const wss = new WebSocketServer({ server, path: '/ws' });
   const clients = new Map(); // userId → Set<ws>
 
-  wss.on('connection', (ws, req) => {
-    const url = new URL(req.url, 'http://localhost');
-    const token = url.searchParams.get('token');
-    let userId = null;
-
-    if (token) {
-      try {
-        const payload = jwt.verify(token, JWT_SECRET);
-        userId = payload.id;
-      } catch { /* anonymous connection */ }
-    }
-
-    if (userId) {
-      if (!clients.has(userId)) clients.set(userId, new Set());
-      clients.get(userId).add(ws);
-    }
-
-    ws.on('close', () => {
-      if (userId && clients.has(userId)) {
-        clients.get(userId).delete(ws);
-        if (clients.get(userId).size === 0) clients.delete(userId);
-      }
-    });
-
-    // Send initial metrics
-    getMetrics().then(data => {
-      if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'metrics.update', data }));
-    });
-  });
-
-  // Broadcast metrics every 10 seconds
-  setInterval(async () => {
-    const data = await getMetrics();
-    const msg = JSON.stringify({ type: 'metrics.update', data });
-    wss.clients.forEach(client => {
-      if (client.readyState === 1) client.send(msg);
-    });
-  }, 10000);
+  let metricsPollTimeout = null;
+  let metricsPollActive = false;
 
   async function getMetrics() {
     try {
@@ -66,11 +30,84 @@ export function setupWebSocket(server) {
     }
   }
 
+  function stopMetricsPollIfNoClients() {
+    if (wss.clients.size > 0) return;
+    if (metricsPollTimeout !== null) {
+      clearTimeout(metricsPollTimeout);
+      metricsPollTimeout = null;
+    }
+    metricsPollActive = false;
+  }
+
+  async function metricsPollTick() {
+    if (wss.clients.size === 0) {
+      metricsPollActive = false;
+      return;
+    }
+
+    const data = await getMetrics();
+
+    if (wss.clients.size === 0) {
+      metricsPollActive = false;
+      return;
+    }
+
+    const msg = JSON.stringify({ type: 'metrics.update', data });
+    wss.clients.forEach((client) => {
+      if (client.readyState === 1) client.send(msg);
+    });
+
+    metricsPollTimeout = setTimeout(() => {
+      metricsPollTimeout = null;
+      void metricsPollTick();
+    }, 10000);
+  }
+
+  function startMetricsPollIfNeeded() {
+    if (metricsPollActive) return;
+    if (wss.clients.size === 0) return;
+    metricsPollActive = true;
+    void metricsPollTick();
+  }
+
+  wss.on('connection', (ws, req) => {
+    const url = new URL(req.url, 'http://localhost');
+    const token = url.searchParams.get('token');
+    let userId = null;
+
+    if (token) {
+      try {
+        const payload = jwt.verify(token, JWT_SECRET);
+        userId = payload.id;
+      } catch { /* anonymous connection */ }
+    }
+
+    if (userId) {
+      if (!clients.has(userId)) clients.set(userId, new Set());
+      clients.get(userId).add(ws);
+    }
+
+    startMetricsPollIfNeeded();
+
+    ws.on('close', () => {
+      if (userId && clients.has(userId)) {
+        clients.get(userId).delete(ws);
+        if (clients.get(userId).size === 0) clients.delete(userId);
+      }
+      setImmediate(() => stopMetricsPollIfNoClients());
+    });
+
+    // Send initial metrics
+    getMetrics().then((data) => {
+      if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'metrics.update', data }));
+    });
+  });
+
   // Expose broadcast function for routes to use
   return {
     broadcast(type, data) {
       const msg = JSON.stringify({ type, data });
-      wss.clients.forEach(client => {
+      wss.clients.forEach((client) => {
         if (client.readyState === 1) client.send(msg);
       });
     },
@@ -78,7 +115,7 @@ export function setupWebSocket(server) {
       const userClients = clients.get(userId);
       if (userClients) {
         const msg = JSON.stringify({ type, data });
-        userClients.forEach(client => {
+        userClients.forEach((client) => {
           if (client.readyState === 1) client.send(msg);
         });
       }

@@ -1,12 +1,53 @@
 import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
 import { getDB } from '../db.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
+/** Profile fields allowed in PUT /profile $set (no spread of req.body). */
+const PROFILE_WHITELIST = [
+  'name',
+  'displayName',
+  'bio',
+  'avatarUrl',
+  'avatar',
+  'location',
+  'role',
+  'isNonverbal',
+  'consentData',
+  'startDate',
+  'caregiverPhotos',
+  'language',
+];
+
+function isReservedOrDangerousKey(key) {
+  if (typeof key !== 'string') return true;
+  if (key === '_id' || key === '__proto__' || key === 'constructor') return true;
+  if (key.startsWith('$')) return true;
+  return false;
+}
+
+function buildSanitizedProfile(body) {
+  const out = {};
+  if (!body || typeof body !== 'object') return out;
+  for (let i = 0; i < PROFILE_WHITELIST.length; i += 1) {
+    const key = PROFILE_WHITELIST[i];
+    if (isReservedOrDangerousKey(key)) continue;
+    if (!Object.prototype.hasOwnProperty.call(body, key)) continue;
+    const val = body[key];
+    if (val === undefined) continue;
+    out[key] = val;
+  }
+  return out;
+}
+
 // ── Profile ──────────────────────────────────────────────
-router.get('/profile/:userId', async (req, res) => {
+router.get('/profile/:userId', authMiddleware, async (req, res) => {
   try {
+    if (req.user.id !== req.params.userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
     const db = getDB();
     const profile = await db.collection('profiles').findOne({ userId: req.params.userId });
     res.json(profile || null);
@@ -16,14 +57,19 @@ router.get('/profile/:userId', async (req, res) => {
   }
 });
 
-router.put('/profile', async (req, res) => {
+router.put('/profile', authMiddleware, async (req, res) => {
   try {
+    const authUserId = req.user.id;
+    const bodyUserId = req.body?.userId;
+    if (bodyUserId !== undefined && bodyUserId !== null && bodyUserId !== authUserId) {
+      return res.status(403).json({ error: 'userId does not match authenticated user' });
+    }
+    const sanitizedProfile = buildSanitizedProfile(req.body);
+    const updatedAt = new Date().toISOString();
     const db = getDB();
-    const { userId, ...data } = req.body;
-    if (!userId) return res.status(400).json({ error: 'userId required' });
     await db.collection('profiles').updateOne(
-      { userId },
-      { $set: { ...data, userId, updated_at: new Date().toISOString() } },
+      { userId: authUserId },
+      { $set: { ...sanitizedProfile, userId: authUserId, updated_at: updatedAt } },
       { upsert: true }
     );
     res.json({ ok: true });
@@ -99,21 +145,30 @@ router.post('/analytics', async (req, res) => {
 });
 
 // ── Onboarded flag ───────────────────────────────────────
-router.get('/onboarded/:userId', async (req, res) => {
+router.get('/onboarded/:userId', authMiddleware, async (req, res) => {
   try {
+    const paramUserId = req.params.userId;
+    const isSelf = req.user.id === paramUserId;
+    const isAdmin = req.user.role === 'admin';
+    if (!isSelf && !isAdmin) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
     const db = getDB();
-    const doc = await db.collection('onboarded').findOne({ userId: req.params.userId });
+    const doc = await db.collection('onboarded').findOne({ userId: paramUserId });
     res.json({ onboarded: doc?.onboarded ?? false });
   } catch (err) {
     res.status(500).json({ error: 'Failed to check onboarded status' });
   }
 });
 
-router.put('/onboarded', async (req, res) => {
+router.put('/onboarded', authMiddleware, async (req, res) => {
   try {
-    const db = getDB();
     const { userId, onboarded } = req.body;
     if (!userId) return res.status(400).json({ error: 'userId required' });
+    if (!req.user || req.user.id !== userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const db = getDB();
     await db.collection('onboarded').updateOne(
       { userId },
       { $set: { userId, onboarded, updated_at: new Date().toISOString() } },

@@ -10,6 +10,16 @@ const STORAGE_KEYS = {
 
 const API_BASE = '/api/storage';
 
+function authHeaders(extra) {
+  const merged = extra != null && typeof extra === 'object' ? extra : {};
+  const token =
+    typeof localStorage !== 'undefined' &&
+    (localStorage.getItem('auth_token') || localStorage.getItem('session_token'));
+  const base = { 'Content-Type': 'application/json', ...merged };
+  if (token) base.Authorization = `Bearer ${token}`;
+  return base;
+}
+
 // ── localStorage helpers (instant, offline-capable) ──────
 function safeGet(key, fallback) {
   try {
@@ -29,11 +39,16 @@ function safeSet(key, value) {
 }
 
 // ── API helpers (sync to MongoDB) ────────────────────────
-async function api(path, options = {}) {
+async function api(path, options) {
   try {
+    const opts = options != null && typeof options === 'object' ? options : {};
+    const optHeaders = opts.headers;
+    const rest = { ...opts };
+    delete rest.headers;
+    const headerExtras = optHeaders != null && typeof optHeaders === 'object' ? optHeaders : {};
     const res = await fetch(`${API_BASE}${path}`, {
-      headers: { 'Content-Type': 'application/json' },
-      ...options,
+      headers: authHeaders(headerExtras),
+      ...rest,
     });
     if (!res.ok) throw new Error(`API ${res.status}`);
     return await res.json();
@@ -121,9 +136,18 @@ export function useStorage() {
   const setProfile = useCallback((data) => {
     setProfileState(data);
     safeSet(STORAGE_KEYS.USER_PROFILE, data);
+    const token =
+      typeof localStorage !== 'undefined' &&
+      (localStorage.getItem('auth_token') || localStorage.getItem('session_token'));
+    const payload = { ...data };
+    if (token) {
+      delete payload.userId;
+    } else {
+      payload.userId = userId;
+    }
     api('/profile', {
       method: 'PUT',
-      body: JSON.stringify({ ...data, userId }),
+      body: JSON.stringify(payload),
     });
   }, [userId]);
 
